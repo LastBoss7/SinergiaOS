@@ -1,17 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Mail, Phone, MapPin, Calendar, Search, Award, Clock, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import UserProfileModal from './UserProfileModal';
 import InviteUserModal from './InviteUserModal';
+import { User } from '../../types';
 
 const TeamView: React.FC = () => {
   const { user: currentUser, company } = useAuth();
-  const [users, setUsers] = useState(() => {
-    // Get users from the same company
-    const savedUsers = localStorage.getItem('sinergia_users_db');
-    const allUsers = savedUsers ? JSON.parse(savedUsers) : [];
-    return allUsers.filter((u: any) => u.companyId === company?.id);
-  });
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -20,6 +18,48 @@ const TeamView: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  // Load users from Supabase
+  useEffect(() => {
+    const loadUsers = async () => {
+      if (!company?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('company_id', company.id)
+          .eq('is_active', true);
+
+        if (error) throw error;
+
+        const formattedUsers: User[] = data.map(user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role as any,
+          status: user.status as any,
+          department: user.department,
+          position: user.position,
+          phone: user.phone,
+          location: user.location,
+          joinDate: user.join_date,
+          lastLogin: user.last_login,
+          permissions: user.permissions || [],
+          companyId: user.company_id,
+          isActive: user.is_active,
+        }));
+
+        setUsers(formattedUsers);
+      } catch (error) {
+        console.error('Error loading users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, [company?.id]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
@@ -37,20 +77,78 @@ const TeamView: React.FC = () => {
     setIsProfileModalOpen(true);
   };
 
-  const handleSaveUser = (updatedUser) => {
-    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+  const handleSaveUser = async (updatedUser) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          department: updatedUser.department,
+          position: updatedUser.position,
+          phone: updatedUser.phone,
+          location: updatedUser.location,
+        })
+        .eq('id', updatedUser.id);
+
+      if (error) throw error;
+
+      setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
   };
 
-  const handleDeleteUser = (userId) => {
-    setUsers(users.filter(user => user.id !== userId));
+  const handleDeleteUser = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_active: false })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setUsers(users.filter(user => user.id !== userId));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
   };
 
-  const handleInviteUser = (userData) => {
-    // Refresh users list from localStorage
-    const savedUsers = localStorage.getItem('sinergia_users_db');
-    const allUsers = savedUsers ? JSON.parse(savedUsers) : [];
-    const companyUsers = allUsers.filter((u: any) => u.companyId === company?.id);
-    setUsers(companyUsers);
+  const handleInviteUser = async (userData) => {
+    // Refresh users list from Supabase
+    if (!company?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('company_id', company.id)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      const formattedUsers: User[] = data.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as any,
+        status: user.status as any,
+        department: user.department,
+        position: user.position,
+        phone: user.phone,
+        location: user.location,
+        joinDate: user.join_date,
+        lastLogin: user.last_login,
+        permissions: user.permissions || [],
+        companyId: user.company_id,
+        isActive: user.is_active,
+      }));
+
+      setUsers(formattedUsers);
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -91,6 +189,12 @@ const TeamView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
@@ -443,6 +547,8 @@ const TeamView: React.FC = () => {
         onClose={() => setIsInviteModalOpen(false)}
         onInvite={handleInviteUser}
       />
+        </>
+      )}
     </div>
   );
 };

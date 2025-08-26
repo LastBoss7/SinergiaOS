@@ -1,19 +1,101 @@
 import React, { useState } from 'react';
 import { Plus, Filter, Search, Calendar, Users, BarChart3 } from 'lucide-react';
-import { mockTasks, mockProjects } from '../../data/mockData';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import ProjectModal from './ProjectModal';
 import TaskModal from '../Tasks/TaskModal';
 import { Project, Task } from '../../types';
 
 const ProjectsView: React.FC = () => {
+  const { company } = useAuth();
   const [activeTab, setActiveTab] = useState<'board' | 'list'>('board');
   const [selectedProject, setSelectedProject] = useState('all');
-  const [projects, setProjects] = useState(mockProjects);
-  const [tasks, setTasks] = useState(mockTasks);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
+
+  // Load data from Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      if (!company?.id) return;
+
+      try {
+        // Load projects
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            manager:manager_id(id, name, email)
+          `)
+          .eq('company_id', company.id);
+
+        if (projectsError) throw projectsError;
+
+        // Load tasks
+        const { data: tasksData, error: tasksError } = await supabase
+          .from('tasks')
+          .select(`
+            *,
+            assignee:assignee_id(id, name, email),
+            reporter:reporter_id(id, name, email),
+            project:project_id(name)
+          `)
+          .eq('company_id', company.id);
+
+        if (tasksError) throw tasksError;
+
+        // Format projects data
+        const formattedProjects: Project[] = projectsData.map(project => ({
+          id: project.id,
+          name: project.name,
+          description: project.description || '',
+          status: project.status as any,
+          progress: project.progress,
+          team: [], // Will be populated from team_members array
+          manager: project.manager as any,
+          budget: project.budget,
+          spent: project.spent,
+          createdAt: project.created_at,
+          dueDate: project.due_date,
+          companyId: project.company_id,
+          client: project.client,
+          tags: project.tags || [],
+        }));
+
+        // Format tasks data
+        const formattedTasks: Task[] = tasksData.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status as any,
+          priority: task.priority as any,
+          assignee: task.assignee as any,
+          reporter: task.reporter as any,
+          dueDate: task.due_date,
+          project: task.project?.name || '',
+          tags: task.tags || [],
+          timeTracked: task.time_tracked,
+          estimatedTime: task.estimated_time,
+          createdAt: task.created_at,
+          updatedAt: task.updated_at,
+          companyId: task.company_id,
+        }));
+
+        setProjects(formattedProjects);
+        setTasks(formattedTasks);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [company?.id]);
 
   const columns = [
     { id: 'todo', title: 'Para Fazer', color: 'slate' },
@@ -120,6 +202,12 @@ const ProjectsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
@@ -411,6 +499,8 @@ const ProjectsView: React.FC = () => {
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
       />
+        </>
+      )}
     </div>
   );
 };

@@ -6,12 +6,18 @@ import {
   PieChart, LineChart, BarChart, TrendingDown, Eye, EyeOff, Settings,
   Download, Share2, Maximize2, Minimize2, ChevronRight, PlayCircle
 } from 'lucide-react';
-import { mockTasks, mockProjects, mockInsights, mockUsers } from '../../data/mockData';
+import { mockInsights } from '../../data/mockData';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import TaskModal from '../Tasks/TaskModal';
 import { Task } from '../../types';
 
 const DashboardView: React.FC = () => {
+  const { company } = useAuth();
   const [tasks, setTasks] = useState(mockTasks);
+  const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -28,6 +34,70 @@ const DashboardView: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState('7d');
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Load dashboard data from Supabase
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!company?.id) return;
+
+      try {
+        // Load tasks
+        const { data: tasksData } = await supabase
+          .from('tasks')
+          .select(`
+            *,
+            assignee:assignee_id(id, name, email),
+            project:project_id(name)
+          `)
+          .eq('company_id', company.id)
+          .limit(10);
+
+        // Load projects
+        const { data: projectsData } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('company_id', company.id);
+
+        // Load users
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('company_id', company.id)
+          .eq('is_active', true);
+
+        if (tasksData) {
+          const formattedTasks = tasksData.map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            assignee: task.assignee,
+            dueDate: task.due_date,
+            project: task.project?.name || '',
+            createdAt: task.created_at,
+            updatedAt: task.updated_at,
+            companyId: task.company_id,
+          }));
+          setTasks(formattedTasks);
+        }
+
+        if (projectsData) {
+          setProjects(projectsData);
+        }
+
+        if (usersData) {
+          setUsers(usersData);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [company?.id]);
 
   // Real-time data simulation
   useEffect(() => {
@@ -58,7 +128,7 @@ const DashboardView: React.FC = () => {
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(task => task.status === 'done').length;
   const overdueTasks = tasks.filter(task => task.status !== 'done' && task.dueDate && new Date(task.dueDate) < new Date()).length;
-  const activeProjects = mockProjects.filter(project => project.status === 'active').length;
+  const activeProjects = projects.filter(project => project.status === 'active').length;
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -110,7 +180,7 @@ const DashboardView: React.FC = () => {
     },
     { 
       label: 'Equipe Ativa', 
-      value: mockUsers.filter(u => u.status === 'online').length, 
+      value: users.filter(u => u.status === 'online').length, 
       icon: Users, 
       color: 'amber',
       change: '100%',
@@ -170,6 +240,12 @@ const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <>
       {/* Header with Real-time Notifications */}
       <div className="flex items-center justify-between">
         <div>
@@ -320,7 +396,7 @@ const DashboardView: React.FC = () => {
               </h2>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400">Analisando em tempo real</span>
+                <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Supabase Online</span>
               </div>
             </div>
             <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
@@ -448,7 +524,7 @@ const DashboardView: React.FC = () => {
           </div>
           
           <div className="space-y-6">
-            {mockProjects.map((project, index) => (
+            {projects.slice(0, 4).map((project, index) => (
               <div key={project.id} className="space-y-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer group">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -491,7 +567,7 @@ const DashboardView: React.FC = () => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-1">
                       <Users className="w-3 h-3" />
-                      <span>{project.team.length} membros</span>
+                      <span>{project.team_members?.length || 0} membros</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="w-3 h-3" />
@@ -661,6 +737,8 @@ const DashboardView: React.FC = () => {
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
       />
+        </>
+      )}
     </div>
   );
 };

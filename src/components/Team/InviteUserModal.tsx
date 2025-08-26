@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, User, Shield, Send, Plus, Copy, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 interface InviteUserModalProps {
   isOpen: boolean;
@@ -28,16 +29,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
     e.preventDefault();
     
     if (inviteMethod === 'email') {
-      // Add user to company database
-      const newUser = addUserToCompany?.(formData);
-      
-      if (newUser && onInvite) {
-        onInvite({
-          type: 'email',
-          user: newUser,
-          ...formData,
-        });
-      }
+      handleEmailInvite();
     } else {
       // Gerar link de convite
       const link = `${window.location.origin}/invite/${Math.random().toString(36).substr(2, 9)}`;
@@ -51,6 +43,22 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
           department: formData.department,
         });
       }
+    }
+  };
+
+  const handleEmailInvite = async () => {
+    try {
+      const newUser = await addUserToCompany?.(formData);
+      
+      if (newUser && onInvite) {
+        onInvite({
+          type: 'email',
+          user: newUser,
+          ...formData,
+        });
+      }
+    } catch (error) {
+      console.error('Error inviting user:', error);
     }
     
     // Reset form and close modal
