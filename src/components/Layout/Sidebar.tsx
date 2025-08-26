@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, ChevronRight } from 'lucide-react';
+import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, ChevronRight, FileText } from 'lucide-react';
 import { mockModules } from '../../data/mockData';
 
 interface SidebarProps {
@@ -10,8 +10,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
   const coreMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'crm', label: 'CRM & Vendas', icon: Users },
+    { id: 'finance', label: 'Financeiro', icon: DollarSign },
     { id: 'projects', label: 'Projetos', icon: BarChart3 },
     { id: 'team', label: 'Equipe', icon: Users },
+    { id: 'hr', label: 'Recursos Humanos', icon: UserCheck },
+    { id: 'reports', label: 'Relatórios', icon: FileText },
     { id: 'messages', label: 'Mensagens', icon: MessageCircle },
   ];
 
@@ -30,8 +34,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
             <Zap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Sinergia OS</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Business Platform</p>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">InsightOS</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Business Intelligence</p>
           </div>
         </div>
       </div>

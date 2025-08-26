@@ -251,10 +251,10 @@ const DashboardView: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center space-x-3">
-            <span>Bom dia, Ana! 👋</span>
+            <span>Bom dia, {authState.user?.name?.split(' ')[0] || 'Usuário'}! 👋</span>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Sistema Online</span>
+              <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">InsightOS Online</span>
             </div>
           </h1>
           <p className="text-slate-600 dark:text-slate-400 flex items-center space-x-4">

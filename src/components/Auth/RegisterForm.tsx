@@ -370,7 +370,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
             <Zap className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-            Criar Conta no Sinergia OS
+            Criar Conta no InsightOS
           </h1>
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className={`w-8 h-1 rounded-full ${step >= 1 ? 'bg-blue-600' : 'bg-slate-300'}`}></div>

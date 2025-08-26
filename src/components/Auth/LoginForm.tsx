@@ -33,10 +33,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
             <Zap className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-            Bem-vindo ao Sinergia OS
+            Bem-vindo ao InsightOS
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Faça login para acessar sua plataforma de negócios
+            Faça login para acessar sua plataforma de gestão empresarial
           </p>
         </div>
 

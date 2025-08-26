@@ -5,8 +5,12 @@ import AuthWrapper from './components/Auth/AuthWrapper';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import DashboardView from './components/Dashboard/DashboardView';
+import CRMView from './components/CRM/CRMView';
+import FinanceView from './components/Finance/FinanceView';
 import ProjectsView from './components/Projects/ProjectsView';
 import TeamView from './components/Team/TeamView';
+import HRView from './components/HR/HRView';
+import ReportsView from './components/Reports/ReportsView';
 import MessagesView from './components/Messages/MessagesView';
 import SettingsView from './components/Settings/SettingsView';
 import CommandPalette from './components/AI/CommandPalette';
@@ -65,10 +69,18 @@ function App() {
     switch (activeView) {
       case 'dashboard':
         return <DashboardView />;
+      case 'crm':
+        return <CRMView />;
+      case 'finance':
+        return <FinanceView />;
       case 'projects':
         return <ProjectsView />;
       case 'team':
         return <TeamView />;
+      case 'hr':
+        return <HRView />;
+      case 'reports':
+        return <ReportsView />;
       case 'messages':
         return <MessagesView />;
       case 'settings':

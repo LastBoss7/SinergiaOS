@@ -408,9 +408,9 @@ export const mockCompanies: Company[] = [
     modules: ['core', 'crm', 'finance', 'hr'],
   },
   {
-    id: 'comp-demo',
-    name: 'Sinergia Demo',
-    email: 'demo@sinergia.com',
+    id: 'comp-demo', 
+    name: 'InsightOS Demo',
+    email: 'demo@insightos.com',
     plan: 'free',
     industry: 'Demonstração',
     size: '1-10',
