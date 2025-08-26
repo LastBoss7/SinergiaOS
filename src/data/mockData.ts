@@ -293,7 +293,7 @@ export const mockModules: Module[] = [
     id: 'analytics', 
     name: 'Analytics Avançado', 
     description: 'Business Intelligence e análise preditiva com machine learning', 
-    icon: 'Brain', 
+    icon: 'BarChart3', 
     status: 'active', 
     tier: 'enterprise',
     features: ['IA Preditiva', 'KPIs Avançados', 'Análise Competitiva', 'Machine Learning']

@@ -19,6 +19,13 @@ const ProjectsView: React.FC = () => {
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
 
+  const columns = [
+    { id: 'todo', title: 'Para Fazer', color: 'slate' },
+    { id: 'in-progress', title: 'Em Andamento', color: 'blue' },
+    { id: 'review', title: 'Em Revisão', color: 'amber' },
+    { id: 'done', title: 'Concluído', color: 'emerald' },
+  ];
+
   // Load data from Supabase
   useEffect(() => {
     const loadData = async () => {
@@ -146,8 +153,14 @@ const ProjectsView: React.FC = () => {
         status: projectData.status as any,
         progress: 0,
         team: projectData.team || [],
+        manager: projectData.manager || null,
+        budget: projectData.budget,
+        spent: projectData.spent || 0,
         createdAt: new Date().toISOString(),
         dueDate: projectData.dueDate,
+        companyId: projectData.companyId || '',
+        client: projectData.client,
+        tags: projectData.tags || [],
       };
       setProjects([...projects, newProject]);
     }
@@ -177,10 +190,15 @@ const ProjectsView: React.FC = () => {
         status: taskData.status as any,
         priority: taskData.priority as any,
         assignee: taskData.assignee,
+        reporter: taskData.reporter || null,
         dueDate: taskData.dueDate,
         project: taskData.project!,
+        tags: taskData.tags || [],
+        timeTracked: taskData.timeTracked || 0,
+        estimatedTime: taskData.estimatedTime,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        companyId: taskData.companyId || '',
       };
       setTasks([...tasks, newTask]);
     }

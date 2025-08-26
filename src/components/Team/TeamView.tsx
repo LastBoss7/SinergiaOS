@@ -36,16 +36,16 @@ const TeamView: React.FC = () => {
 
         const formattedUsers: User[] = data.map(user => ({
           id: user.id,
-          name: user.name,
+          name: user.full_name || user.first_name + ' ' + user.last_name,
           email: user.email,
           role: user.role as any,
           status: user.status as any,
-          department: user.department,
+          department: user.department_id,
           position: user.position,
           phone: user.phone,
-          location: user.location,
-          joinDate: user.join_date,
-          lastLogin: user.last_login,
+          location: user.timezone || 'Brasil',
+          joinDate: user.hire_date || user.created_at,
+          lastLogin: user.last_login_at,
           permissions: user.permissions || [],
           companyId: user.company_id,
           isActive: user.is_active,
@@ -73,35 +73,39 @@ const TeamView: React.FC = () => {
     });
   }, [users, searchTerm, filterRole, filterStatus]);
 
-  const handleUserClick = (user) => {
+  const handleUserClick = (user: User) => {
     setSelectedUser(user);
     setIsProfileModalOpen(true);
   };
 
-  const handleSaveUser = async (updatedUser) => {
+  const handleSaveUser = async (updatedUser: Partial<User>) => {
     try {
       const { error } = await supabase
         .from('users')
         .update({
-          name: updatedUser.name,
+          full_name: updatedUser.name,
+          first_name: updatedUser.name?.split(' ')[0],
+          last_name: updatedUser.name?.split(' ').slice(1).join(' '),
           email: updatedUser.email,
           role: updatedUser.role,
-          department: updatedUser.department,
           position: updatedUser.position,
           phone: updatedUser.phone,
-          location: updatedUser.location,
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', updatedUser.id);
+        .eq('id', selectedUser?.id);
 
       if (error) throw error;
 
-      setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+      if (selectedUser) {
+        const updated = { ...selectedUser, ...updatedUser };
+        setUsers(users.map(user => user.id === selectedUser.id ? updated : user));
+      }
     } catch (error) {
       console.error('Error updating user:', error);
     }
   };
 
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = async (userId: string) => {
     try {
       const { error } = await supabase
         .from('users')
@@ -116,7 +120,7 @@ const TeamView: React.FC = () => {
     }
   };
 
-  const handleInviteUser = async (userData) => {
+  const handleInviteUser = async (userData: any) => {
     // Refresh users list from Supabase
     if (!company?.id) return;
 
@@ -131,16 +135,16 @@ const TeamView: React.FC = () => {
 
       const formattedUsers: User[] = data.map(user => ({
         id: user.id,
-        name: user.name,
+        name: user.full_name || user.first_name + ' ' + user.last_name,
         email: user.email,
         role: user.role as any,
         status: user.status as any,
-        department: user.department,
+        department: user.department_id,
         position: user.position,
         phone: user.phone,
-        location: user.location,
-        joinDate: user.join_date,
-        lastLogin: user.last_login,
+        location: user.timezone || 'Brasil',
+        joinDate: user.hire_date || user.created_at,
+        lastLogin: user.last_login_at,
         permissions: user.permissions || [],
         companyId: user.company_id,
         isActive: user.is_active,

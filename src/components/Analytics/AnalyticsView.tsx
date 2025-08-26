@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, PieChart, TrendingUp, TrendingDown, Activity, Target, Users, DollarSign, Clock, Award, Zap, Brain, LineChart, Calendar, Download, Filter, RefreshCw, Eye, Settings, Maximize2, Share2, AlertTriangle, CheckCircle, ArrowUp, ArrowDown, Percent, Timer, Star, Building, Package, MessageSquare } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, TrendingDown, Activity, Target, Users, DollarSign, Clock, Award, Zap, Brain, LineChart, Calendar, Download, Filter, RefreshCw, Eye, Settings, Maximize2, Share2, AlertTriangle, CheckCircle, ArrowUp, ArrowDown, Percent, Timer, Star, Building, Package, MessageSquare, X as XCircle } from 'lucide-react';
 
 const AnalyticsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');

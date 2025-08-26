@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, ChevronRight, FileText, Brain, Factory } from 'lucide-react';
+import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, ChevronRight, FileText, Brain } from 'lucide-react';
 import { mockModules } from '../../data/mockData';
 
 interface SidebarProps {
@@ -23,7 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
 
   const getModuleIcon = (iconName: string) => {
     const icons: { [key: string]: any } = {
-      Home, Users, DollarSign, UserCheck, Package, BarChart3, Brain, Factory
+      Home, Users, DollarSign, UserCheck, Package, BarChart3, Brain
     };
     return icons[iconName] || Home;
   };

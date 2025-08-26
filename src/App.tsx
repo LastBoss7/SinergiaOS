@@ -18,6 +18,7 @@ import SettingsView from './components/Settings/SettingsView';
 import OperationsView from './components/Operations/OperationsView';
 import AnalyticsView from './components/Analytics/AnalyticsView';
 import CommandPalette from './components/AI/CommandPalette';
+import MobileProjects from './components/Mobile/MobileProjects';
 import ProjectModal from './components/Projects/ProjectModal';
 import TaskModal from './components/Tasks/TaskModal';
 
@@ -124,6 +125,8 @@ function App() {
                   <div className="lg:hidden">
                     {activeView === 'dashboard' ? (
                       <MobileDashboard />
+                    ) : activeView === 'projects' ? (
+                      <MobileProjects />
                     ) : (
                       <div className="space-y-6">
                         <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">

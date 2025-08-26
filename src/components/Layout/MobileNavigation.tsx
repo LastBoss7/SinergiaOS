@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, Brain, FileText, Menu, X, Bell, Search, Plus, Factory } from 'lucide-react';
+import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, Brain, FileText, Menu, X, Bell, Search, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface MobileNavigationProps {

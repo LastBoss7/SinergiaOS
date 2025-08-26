@@ -22,6 +22,15 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onActi
     'Agendar reunião com equipe',
     'Exportar dados do último mês'
   ]);
+
+  const categories = [
+    { id: 'all', name: 'Todos', icon: Command },
+    { id: 'create', name: 'Criar', icon: Plus },
+    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
+    { id: 'team', name: 'Equipe', icon: Users },
+    { id: 'automation', name: 'Automação', icon: Zap },
+    { id: 'communication', name: 'Comunicação', icon: MessageCircle },
+  ];
   
   const [suggestions] = useState([
     { text: 'Criar novo projeto', action: 'create-project', icon: Plus, category: 'create', description: 'Iniciar um novo projeto com equipe' },
@@ -35,15 +44,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onActi
     { text: 'Configurar automação', action: 'setup-automation', icon: Zap, category: 'automation', description: 'Criar fluxo de trabalho automatizado' },
     { text: 'Backup dos dados', action: 'backup-data', icon: FileText, category: 'system', description: 'Fazer backup completo do sistema' },
   ]);
-
-  const categories = [
-    { id: 'all', name: 'Todos', icon: Command },
-    { id: 'create', name: 'Criar', icon: Plus },
-    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
-    { id: 'team', name: 'Equipe', icon: Users },
-    { id: 'automation', name: 'Automação', icon: Zap },
-    { id: 'communication', name: 'Comunicação', icon: MessageCircle },
-  ];
 
   const filteredSuggestions = activeCategory === 'all' 
     ? suggestions 
@@ -341,13 +341,13 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onActi
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                      Resposta da IA Sinergia
+                      Resposta da IA InsightOS
                     </h4>
                     <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
                       Entendi sua solicitação: <strong>"{query}"</strong>
                     </p>
                     <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
-                      No ambiente de demonstração, essa funcionalidade seria processada pela IA integrada do Sinergia OS 
+                      No ambiente de demonstração, essa funcionalidade seria processada pela IA integrada do InsightOS 
                       para fornecer insights precisos, automações inteligentes e ações baseadas nos dados da sua empresa.
                     </p>
                     <div className="flex items-center space-x-2 mt-3">

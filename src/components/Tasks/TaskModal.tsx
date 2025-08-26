@@ -26,6 +26,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
     assignee: task?.assignee || null,
     dueDate: task?.dueDate || '',
     project: task?.project || mockProjects[0]?.name || '',
+    tags: task?.tags || [],
+    timeTracked: task?.timeTracked || 0,
+    estimatedTime: task?.estimatedTime || 0,
+    reporter: task?.reporter || null,
+    companyId: task?.companyId || '',
   });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

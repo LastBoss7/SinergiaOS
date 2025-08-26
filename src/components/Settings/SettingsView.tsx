@@ -152,7 +152,6 @@ const SettingsView: React.FC = () => {
                       {module.icon === 'Package' && '📦'}
                       {module.icon === 'BarChart3' && '📊'}
                       {module.icon === 'Brain' && '🧠'}
-                      {module.icon === 'Factory' && '🏭'}
                     </span>
                   </div>
                   <div>

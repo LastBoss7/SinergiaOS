@@ -24,6 +24,12 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     status: project?.status || 'active',
     dueDate: project?.dueDate || '',
     team: project?.team || [],
+    manager: project?.manager || null,
+    budget: project?.budget || 0,
+    spent: project?.spent || 0,
+    client: project?.client || '',
+    tags: project?.tags || [],
+    companyId: project?.companyId || '',
   });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
