@@ -51,6 +51,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load user data with comprehensive fallback
   const loadUserData = async (userId: string, email?: string) => {
     try {
+      // Skip Supabase for demo users - go directly to localStorage
+      if (userId === '550e8400-e29b-41d4-a716-446655440000' || email === 'demo@insightos.com' || email === 'demo@sinergia.com') {
+        // Use localStorage directly for demo users
+        const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
+        const companies = JSON.parse(localStorage.getItem('insightos_companies') || '[]');
+        
+        let userData = users.find((u: any) => u.id === userId);
+        if (!userData && email) {
+          userData = users.find((u: any) => u.email === email && u.isActive);
+        }
+        
+        if (!userData) {
+          throw new Error('Usuário demo não encontrado');
+        }
+        
+        const companyData = companies.find((c: any) => c.id === userData.companyId);
+        if (!companyData) {
+          throw new Error('Empresa demo não encontrada');
+        }
+        
+        // Update user status in localStorage
+        userData.status = 'online';
+        userData.lastLogin = new Date().toISOString();
+        const userIndex = users.findIndex((u: any) => u.id === userData.id);
+        if (userIndex !== -1) {
+          users[userIndex] = userData;
+          localStorage.setItem('insightos_users', JSON.stringify(users));
+        }
+        
+        setAuthState({
+          isAuthenticated: true,
+          user: userData,
+          company: companyData,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+
       // First try Supabase if configured
       if (isSupabaseConfigured()) {
         try {
@@ -238,10 +277,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Handle demo login first
       if ((email === 'demo@insightos.com' || email === 'demo@sinergia.com') && password === 'demo') {
-        await loadUserData('demo-user', email);
+        await loadUserData('550e8400-e29b-41d4-a716-446655440000', email);
         // Save session to localStorage
         localStorage.setItem('insightos_session', JSON.stringify({
-          userId: 'demo-user',
+          userId: '550e8400-e29b-41d4-a716-446655440000',
           email: email,
           timestamp: new Date().toISOString()
         }));
