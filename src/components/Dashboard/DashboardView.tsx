@@ -7,6 +7,7 @@ import {
   Download, Share2, Maximize2, Minimize2, ChevronRight, PlayCircle
 } from 'lucide-react';
 import { mockInsights } from '../../data/mockData';
+import { mockTasks } from '../../data/mockData';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import TaskModal from '../Tasks/TaskModal';

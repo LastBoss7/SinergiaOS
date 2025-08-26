@@ -144,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } catch (supabaseError: any) {
         // If Supabase tables don't exist, fall back to localStorage
-        console.warn('Supabase tables not found, using localStorage fallback:', supabaseError.message);
+        console.log('Supabase tables not found, using localStorage fallback:', supabaseError.message);
         
         // Load from localStorage
         const users = JSON.parse(localStorage.getItem('sinergia_users') || '[]');
@@ -206,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await loadUserData(userData.id);
       } catch (supabaseError: any) {
         // Fall back to localStorage
-        console.warn('Supabase login failed, using localStorage:', supabaseError.message);
+        console.log('Supabase login failed, using localStorage:', supabaseError.message);
         
         const users = JSON.parse(localStorage.getItem('sinergia_users') || '[]');
         
