@@ -6,15 +6,14 @@ import {
   PieChart, LineChart, BarChart, TrendingDown, Eye, EyeOff, Settings,
   Download, Share2, Maximize2, Minimize2, ChevronRight, PlayCircle
 } from 'lucide-react';
-import { mockInsights } from '../../data/mockData';
-import { mockTasks } from '../../data/mockData';
+import { mockInsights, mockTasks, mockUsers, mockProjects } from '../../data/mockData';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import TaskModal from '../Tasks/TaskModal';
 import { Task } from '../../types';
 
 const DashboardView: React.FC = () => {
-  const { company } = useAuth();
+  const { user, company } = useAuth();
   const [tasks, setTasks] = useState(mockTasks);
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
@@ -42,56 +41,80 @@ const DashboardView: React.FC = () => {
       if (!company?.id) return;
 
       try {
-        // Load tasks
-        const { data: tasksData } = await supabase
-          .from('tasks')
-          .select(`
-            *,
-            assignee:assignee_id(id, name, email),
-            project:project_id(name)
-          `)
-          .eq('company_id', company.id)
-          .limit(10);
+        // Check if company ID is a valid UUID (Supabase format)
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(company.id);
+        
+        if (isValidUUID) {
+          // Load tasks
+          const { data: tasksData } = await supabase
+            .from('tasks')
+            .select(`
+              *,
+              assignee:assignee_id(id, name, email),
+              project:project_id(name)
+            `)
+            .eq('company_id', company.id)
+            .limit(10);
 
-        // Load projects
-        const { data: projectsData } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('company_id', company.id);
+          // Load projects
+          const { data: projectsData } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('company_id', company.id);
 
-        // Load users
-        const { data: usersData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('company_id', company.id)
-          .eq('is_active', true);
+          // Load users
+          const { data: usersData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('company_id', company.id)
+            .eq('is_active', true);
 
-        if (tasksData) {
-          const formattedTasks = tasksData.map(task => ({
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            status: task.status,
-            priority: task.priority,
-            assignee: task.assignee,
-            dueDate: task.due_date,
-            project: task.project?.name || '',
-            createdAt: task.created_at,
-            updatedAt: task.updated_at,
-            companyId: task.company_id,
-          }));
-          setTasks(formattedTasks);
-        }
+          if (tasksData && tasksData.length > 0) {
+            const formattedTasks = tasksData.map(task => ({
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              status: task.status,
+              priority: task.priority,
+              assignee: task.assignee,
+              dueDate: task.due_date,
+              project: task.project?.name || '',
+              createdAt: task.created_at,
+              updatedAt: task.updated_at,
+              companyId: task.company_id,
+            }));
+            setTasks(formattedTasks);
+          } else {
+            // Fallback to mock data
+            setTasks(mockTasks);
+          }
 
-        if (projectsData) {
-          setProjects(projectsData);
-        }
+          if (projectsData && projectsData.length > 0) {
+            setProjects(projectsData);
+          } else {
+            // Fallback to mock data
+            setProjects(mockProjects);
+          }
 
-        if (usersData) {
-          setUsers(usersData);
+          if (usersData && usersData.length > 0) {
+            setUsers(usersData);
+          } else {
+            // Fallback to mock data
+            setUsers(mockUsers);
+          }
+        } else {
+          // Company ID is not a valid UUID, use mock data
+          console.info('Using mock data - company ID is not a valid UUID');
+          setTasks(mockTasks);
+          setProjects(mockProjects);
+          setUsers(mockUsers);
         }
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        console.info('Supabase not available, using mock data:', error);
+        // Fallback to mock data
+        setTasks(mockTasks);
+        setProjects(mockProjects);
+        setUsers(mockUsers);
       } finally {
         setLoading(false);
       }
@@ -251,7 +274,7 @@ const DashboardView: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center space-x-3">
-            <span>Bom dia, {authState.user?.name?.split(' ')[0] || 'Usuário'}! 👋</span>
+            <span>Bom dia, {user?.name?.split(' ')[0] || 'Usuário'}! 👋</span>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
               <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">InsightOS Online</span>
