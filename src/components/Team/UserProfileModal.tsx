@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Phone, MapPin, Calendar, Edit3, Save, Camera, Shield, User as UserIcon } from 'lucide-react';
+import { X, Mail, Phone, MapPin, Calendar, Edit3, Save, Camera, Shield, User as UserIcon, Upload, FileImage, Check, AlertCircle } from 'lucide-react';
 import { User } from '../../types';
 
 interface UserProfileModalProps {
@@ -18,6 +18,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   canEdit = false 
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -30,6 +34,58 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   });
 
   if (!isOpen || !user) return null;
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Arquivo muito grande. Máximo 5MB permitido.');
+      return;
+    }
+
+    // Accept all image types
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Por favor, selecione apenas arquivos de imagem.');
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePhotoUpload = async () => {
+    if (!selectedFile) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      // Simulate upload process
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // In a real app, upload to Supabase Storage
+      console.log('Uploading user photo:', selectedFile.name);
+      
+      // Reset state
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      
+    } catch (error) {
+      setUploadError('Erro ao fazer upload. Tente novamente.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = () => {
     onSave({
@@ -99,14 +155,28 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           <div className="flex items-start space-x-6 mb-8">
             <div className="relative">
               <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
-                {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  user.name.split(' ').map(n => n[0]).join('').slice(0, 2)
+                )}
               </div>
               <div className={`absolute -bottom-1 -right-1 w-6 h-6 ${getStatusColor(user.status)} rounded-full border-4 border-white dark:border-slate-900`}></div>
-              {isEditing && (
-                <button className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors">
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity">
+                <input
+                  type="file"
+                  id="user-photo-upload"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="user-photo-upload"
+                  className="cursor-pointer flex items-center justify-center w-full h-full"
+                >
                   <Camera className="w-6 h-6" />
-                </button>
-              )}
+                </label>
+              </div>
             </div>
             
             <div className="flex-1">
@@ -172,6 +242,54 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 </div>
               )}
             </div>
+            
+            {/* Photo Upload Controls */}
+            {selectedFile && (
+              <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-600">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <FileImage className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">Nova Foto</span>
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-500">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </span>
+                </div>
+                
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3 truncate">
+                  {selectedFile.name}
+                </p>
+                
+                {uploadError && (
+                  <div className="flex items-center space-x-2 text-xs text-red-600 dark:text-red-400 mb-3">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handlePhotoUpload}
+                    disabled={uploading}
+                    className="flex items-center space-x-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm transition-colors"
+                  >
+                    {uploading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    <span>{uploading ? 'Enviando...' : 'Salvar Foto'}</span>
+                  </button>
+                  <button
+                    onClick={handlePhotoUpload}
+                    disabled={uploading}
+                    className="px-3 py-2 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-sm transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Informações detalhadas */}

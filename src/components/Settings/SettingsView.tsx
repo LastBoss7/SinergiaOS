@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { User, Bell, Shield, CreditCard, Palette, Globe, Database, Zap, ChevronRight, Check, X, Star } from 'lucide-react';
+import { User, Bell, Shield, CreditCard, Palette, Globe, Database, Zap, ChevronRight, Check, X, Star, Camera, Upload, FileImage, AlertCircle } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { mockUsers, mockModules } from '../../data/mockData';
 
 const SettingsView: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [activeSection, setActiveSection] = useState('profile');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const sections = [
     { id: 'profile', name: 'Perfil', icon: User },
@@ -42,14 +46,85 @@ const SettingsView: React.FC = () => {
     },
   ];
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Reset previous errors
+    setUploadError(null);
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Arquivo muito grande. Máximo 10MB permitido.');
+      return;
+    }
+
+    // Validate file type (accept all image types)
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Por favor, selecione apenas arquivos de imagem.');
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      // Simulate upload process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // In a real app, you would upload to Supabase Storage or another service
+      console.log('Uploading file:', selectedFile.name);
+      
+      // Reset state after successful upload
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      
+      // Show success message (you could add a toast notification here)
+      alert('Foto atualizada com sucesso!');
+      
+    } catch (error) {
+      setUploadError('Erro ao fazer upload. Tente novamente.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCancelUpload = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setUploadError(null);
+  };
+
   const renderProfileSection = () => (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Perfil do Usuário</h2>
         <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center space-x-6 mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
-              AS
+            <div className="relative group">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold overflow-hidden">
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  'AS'
+                )}
+              </div>
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Ana Silva</h3>
@@ -60,9 +135,60 @@ const SettingsView: React.FC = () => {
                 </span>
               </div>
             </div>
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-              Editar Foto
-            </button>
+            <div className="space-y-3">
+              <input
+                type="file"
+                id="photo-upload"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <label
+                htmlFor="photo-upload"
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Editar Foto</span>
+              </label>
+              
+              {selectedFile && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
+                    <FileImage className="w-4 h-4" />
+                    <span className="truncate max-w-32">{selectedFile.name}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleUpload}
+                      disabled={uploading}
+                      className="flex items-center space-x-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded text-xs transition-colors"
+                    >
+                      {uploading ? (
+                        <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                      <span>{uploading ? 'Enviando...' : 'Salvar'}</span>
+                    </button>
+                    <button
+                      onClick={handleCancelUpload}
+                      disabled={uploading}
+                      className="flex items-center space-x-1 px-3 py-1 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded text-xs transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>Cancelar</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {uploadError && (
+                <div className="flex items-center space-x-2 text-xs text-red-600 dark:text-red-400">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
