@@ -276,24 +276,27 @@ export const mockModules: Module[] = [
     name: 'Recursos Humanos', 
     description: 'Gestão de pessoas, performance e desenvolvimento de talentos', 
     icon: 'UserCheck', 
-    status: 'available', 
-    tier: 'business' 
+    status: 'active', 
+    tier: 'business',
+    features: ['Gestão de funcionários', 'Avaliações', 'Folha de pagamento', 'Controle de férias']
   },
   { 
     id: 'operations', 
     name: 'Operações', 
     description: 'Estoque, fornecedores e otimização da cadeia de suprimentos', 
     icon: 'Package', 
-    status: 'coming-soon', 
-    tier: 'enterprise' 
+    status: 'active', 
+    tier: 'business',
+    features: ['Gestão de estoque', 'Fornecedores', 'Pedidos', 'Instalações']
   },
   { 
     id: 'analytics', 
     name: 'Analytics Avançado', 
     description: 'Business Intelligence e análise preditiva com machine learning', 
-    icon: 'BarChart3', 
-    status: 'coming-soon', 
-    tier: 'enterprise' 
+    icon: 'Brain', 
+    status: 'active', 
+    tier: 'enterprise',
+    features: ['IA Preditiva', 'KPIs Avançados', 'Análise Competitiva', 'Machine Learning']
   }
 ];
 

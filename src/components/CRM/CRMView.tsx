@@ -4,6 +4,8 @@ import { Plus, Search, Filter, Phone, Mail, Calendar, DollarSign, TrendingUp, Us
 const CRMView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('leads');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAddLead, setShowAddLead] = useState(false);
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
 
   const leads = [
     {
@@ -127,7 +129,9 @@ const CRMView: React.FC = () => {
         </div>
         <button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
           <Plus className="w-4 h-4" />
-          <span>Novo Lead</span>
+          <span onClick={() => activeTab === 'leads' ? setShowAddLead(true) : setShowAddCustomer(true)}>
+            {activeTab === 'leads' ? 'Novo Lead' : 'Novo Cliente'}
+          </span>
         </button>
       </div>
 

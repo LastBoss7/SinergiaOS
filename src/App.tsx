@@ -13,6 +13,8 @@ import HRView from './components/HR/HRView';
 import ReportsView from './components/Reports/ReportsView';
 import MessagesView from './components/Messages/MessagesView';
 import SettingsView from './components/Settings/SettingsView';
+import OperationsView from './components/Operations/OperationsView';
+import AnalyticsView from './components/Analytics/AnalyticsView';
 import CommandPalette from './components/AI/CommandPalette';
 import ProjectModal from './components/Projects/ProjectModal';
 import TaskModal from './components/Tasks/TaskModal';
@@ -79,6 +81,10 @@ function App() {
         return <TeamView />;
       case 'hr':
         return <HRView />;
+      case 'operations':
+        return <OperationsView />;
+      case 'analytics':
+        return <AnalyticsView />;
       case 'reports':
         return <ReportsView />;
       case 'messages':

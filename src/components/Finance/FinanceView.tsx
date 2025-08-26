@@ -4,6 +4,14 @@ import { Plus, TrendingUp, TrendingDown, DollarSign, CreditCard, PieChart, Calen
 const FinanceView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('30d');
+  const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({
+    type: 'income',
+    description: '',
+    amount: '',
+    category: '',
+    date: new Date().toISOString().split('T')[0]
+  });
 
   const transactions = [
     {
@@ -125,7 +133,7 @@ const FinanceView: React.FC = () => {
           </select>
           <button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
             <Plus className="w-4 h-4" />
-            <span>Nova Transação</span>
+            <span onClick={() => setShowAddTransaction(true)}>Nova Transação</span>
           </button>
         </div>
       </div>
@@ -468,6 +476,104 @@ const FinanceView: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add Transaction Modal */}
+      {showAddTransaction && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Nova Transação</h2>
+              <button
+                onClick={() => setShowAddTransaction(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Tipo</label>
+                <select
+                  value={newTransaction.type}
+                  onChange={(e) => setNewTransaction({...newTransaction, type: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="income">Receita</option>
+                  <option value="expense">Despesa</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Descrição</label>
+                <input
+                  type="text"
+                  value={newTransaction.description}
+                  onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Descrição da transação"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Valor</label>
+                <input
+                  type="number"
+                  value={newTransaction.amount}
+                  onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Categoria</label>
+                <select
+                  value={newTransaction.category}
+                  onChange={(e) => setNewTransaction({...newTransaction, category: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecionar categoria</option>
+                  <option value="Vendas">Vendas</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Folha de Pagamento">Folha de Pagamento</option>
+                  <option value="Infraestrutura">Infraestrutura</option>
+                  <option value="Tecnologia">Tecnologia</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Data</label>
+                <input
+                  type="date"
+                  value={newTransaction.date}
+                  onChange={(e) => setNewTransaction({...newTransaction, date: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setShowAddTransaction(false)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  console.log('Nova transação:', newTransaction);
+                  setShowAddTransaction(false);
+                  setNewTransaction({
+                    type: 'income',
+                    description: '',
+                    amount: '',
+                    category: '',
+                    date: new Date().toISOString().split('T')[0]
+                  });
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Adicionar
+              </button>
+            </div>
           </div>
         </div>
       )}

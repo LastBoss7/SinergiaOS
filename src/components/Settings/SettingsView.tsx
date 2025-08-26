@@ -151,11 +151,25 @@ const SettingsView: React.FC = () => {
                       {module.icon === 'UserCheck' && '✅'}
                       {module.icon === 'Package' && '📦'}
                       {module.icon === 'BarChart3' && '📊'}
+                      {module.icon === 'Brain' && '🧠'}
+                      {module.icon === 'Factory' && '🏭'}
                     </span>
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-white">{module.name}</h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">{module.description}</p>
+                    {module.features && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {module.features.slice(0, 2).map((feature) => (
+                          <span key={feature} className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
+                            {feature}
+                          </span>
+                        ))}
+                        {module.features.length > 2 && (
+                          <span className="text-xs text-slate-500">+{module.features.length - 2}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 

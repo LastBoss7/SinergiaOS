@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, ChevronRight, FileText } from 'lucide-react';
+import { Home, Users, MessageCircle, Settings, Zap, BarChart3, DollarSign, UserCheck, Package, ChevronRight, FileText, Brain, Factory } from 'lucide-react';
 import { mockModules } from '../../data/mockData';
 
 interface SidebarProps {
@@ -15,13 +15,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     { id: 'projects', label: 'Projetos', icon: BarChart3 },
     { id: 'team', label: 'Equipe', icon: Users },
     { id: 'hr', label: 'Recursos Humanos', icon: UserCheck },
+    { id: 'operations', label: 'Operações', icon: Package },
+    { id: 'analytics', label: 'Analytics Avançado', icon: Brain },
     { id: 'reports', label: 'Relatórios', icon: FileText },
     { id: 'messages', label: 'Mensagens', icon: MessageCircle },
   ];
 
   const getModuleIcon = (iconName: string) => {
     const icons: { [key: string]: any } = {
-      Home, Users, DollarSign, UserCheck, Package, BarChart3
+      Home, Users, DollarSign, UserCheck, Package, BarChart3, Brain, Factory
     };
     return icons[iconName] || Home;
   };
