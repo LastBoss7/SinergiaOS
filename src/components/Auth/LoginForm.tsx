@@ -21,7 +21,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   };
 
   const handleDemoLogin = async () => {
-    await login('demo@sinergia.com', 'demo');
+    await login('demo@insightos.com', 'demo');
   };
 
   return (

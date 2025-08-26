@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useEffect } from 'react';
 import { Plus, Mail, Phone, MapPin, Calendar, Search, Award, Clock, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';

@@ -42,9 +42,9 @@ const DashboardView: React.FC = () => {
 
       try {
         // Check if company ID is a valid UUID (Supabase format)
-        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(company.id);
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(company.id);
         
-        if (isValidUUID) {
+        if (isValidUUID && company.id !== '550e8400-e29b-41d4-a716-446655440001') {
           // Load tasks
           const { data: tasksData } = await supabase
             .from('tasks')

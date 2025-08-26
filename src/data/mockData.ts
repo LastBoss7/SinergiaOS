@@ -20,9 +20,9 @@ export const mockUsers: User[] = [
     isActive: true,
   },
   { 
-    id: 'demo-user', 
+    id: '550e8400-e29b-41d4-a716-446655440000', 
     name: 'Usuário Demo', 
-    email: 'demo@sinergia.com', 
+    email: 'demo@insightos.com', 
     role: 'admin', 
     status: 'online',
     department: 'Demonstração',
@@ -34,7 +34,7 @@ export const mockUsers: User[] = [
     permissions: [
       { module: 'all', actions: ['read', 'write', 'delete', 'admin'] }
     ],
-    companyId: 'comp-demo',
+    companyId: '550e8400-e29b-41d4-a716-446655440001',
     isActive: true,
   },
   { 
@@ -408,7 +408,7 @@ export const mockCompanies: Company[] = [
     modules: ['core', 'crm', 'finance', 'hr'],
   },
   {
-    id: 'comp-demo', 
+    id: '550e8400-e29b-41d4-a716-446655440001', 
     name: 'InsightOS Demo',
     email: 'demo@insightos.com',
     plan: 'free',
@@ -416,7 +416,7 @@ export const mockCompanies: Company[] = [
     size: '1-10',
     address: 'São Paulo, SP',
     phone: '+55 (11) 0000-0000',
-    website: 'https://sinergia.demo',
+    website: 'https://insightos.demo',
     createdAt: '2024-01-01',
     settings: {
       timezone: 'America/Sao_Paulo',
