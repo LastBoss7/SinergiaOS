@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Try Supabase first
       try {
         // For demo purposes, we'll use a simple email check
-        if (email === 'demo@insightos.com' && password === 'demo') {
+        if (email === 'demo@insightos.com' || email === 'demo@sinergia.com') {
           await loadUserData('550e8400-e29b-41d4-a716-446655440001');
           return;
         }
@@ -211,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const users = JSON.parse(localStorage.getItem('sinergia_users') || '[]');
         
         // Demo user
-        if (email === 'demo@insightos.com' && password === 'demo') {
+        if ((email === 'demo@insightos.com' || email === 'demo@sinergia.com') && password === 'demo') {
           await loadUserData('550e8400-e29b-41d4-a716-446655440001');
           return;
         }
