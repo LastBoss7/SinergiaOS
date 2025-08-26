@@ -1,65 +1,46 @@
 import React, { useState } from 'react';
-import { User, Bell, Shield, CreditCard, Palette, Globe, Database, Zap, ChevronRight, Check, X, Star, Camera, Upload, FileImage, AlertCircle } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
-import { mockUsers, mockModules } from '../../data/mockData';
+import { X, Mail, User, Shield, Send, Plus, Copy, Check, Upload, FileImage, Camera, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 
-const SettingsView: React.FC = () => {
-  const { theme, toggleTheme } = useTheme();
-  const [activeSection, setActiveSection] = useState('profile');
+interface InviteUserModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onInvite?: (inviteData: any) => void;
+}
+
+const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onInvite }) => {
+  const { addUserToCompany } = useAuth();
+  const [inviteMethod, setInviteMethod] = useState<'email' | 'link'>('email');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'member',
+    department: '',
+    position: '',
+    message: '',
+  });
+  const [inviteLink, setInviteLink] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const sections = [
-    { id: 'profile', name: 'Perfil', icon: User },
-    { id: 'notifications', name: 'Notificações', icon: Bell },
-    { id: 'security', name: 'Segurança', icon: Shield },
-    { id: 'billing', name: 'Cobrança', icon: CreditCard },
-    { id: 'modules', name: 'Módulos', icon: Zap },
-    { id: 'appearance', name: 'Aparência', icon: Palette },
-    { id: 'integrations', name: 'Integrações', icon: Globe },
-    { id: 'data', name: 'Dados', icon: Database },
-  ];
-
-  const plans = [
-    {
-      name: 'Free',
-      price: 'R$ 0',
-      period: '/mês',
-      features: ['Módulo Central', 'Até 5 usuários', 'Suporte por email'],
-      current: true,
-    },
-    {
-      name: 'Business',
-      price: 'R$ 29',
-      period: '/usuário/mês',
-      features: ['Todos os módulos básicos', 'Usuários ilimitados', 'Suporte prioritário', 'API limitada'],
-      current: false,
-    },
-    {
-      name: 'Enterprise',
-      price: 'Personalizado',
-      period: '',
-      features: ['Todos os módulos', 'Suporte dedicado', 'SLA garantido', 'API completa', 'Customizações'],
-      current: false,
-    },
-  ];
+  if (!isOpen) return null;
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Reset previous errors
     setUploadError(null);
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('Arquivo muito grande. Máximo 10MB permitido.');
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Arquivo muito grande. Máximo 5MB permitido.');
       return;
     }
 
-    // Validate file type (accept all image types)
+    // Accept all image types
     if (!file.type.startsWith('image/')) {
       setUploadError('Por favor, selecione apenas arquivos de imagem.');
       return;
@@ -75,454 +56,330 @@ const SettingsView: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-
-    setUploading(true);
-    setUploadError(null);
-
-    try {
-      // Simulate upload process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (inviteMethod === 'email') {
+      handleEmailInvite();
+    } else {
+      // Gerar link de convite
+      const link = `${window.location.origin}/invite/${Math.random().toString(36).substr(2, 9)}`;
+      setInviteLink(link);
       
-      // In a real app, you would upload to Supabase Storage or another service
-      console.log('Uploading file:', selectedFile.name);
-      
-      // Reset state after successful upload
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      
-      // Show success message (you could add a toast notification here)
-      alert('Foto atualizada com sucesso!');
-      
-    } catch (error) {
-      setUploadError('Erro ao fazer upload. Tente novamente.');
-    } finally {
-      setUploading(false);
+      if (onInvite) {
+        onInvite({
+          type: 'link',
+          link,
+          role: formData.role,
+          department: formData.department,
+        });
+      }
     }
   };
 
-  const handleCancelUpload = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setUploadError(null);
+  const handleEmailInvite = async () => {
+    try {
+      const newUser = await addUserToCompany?.(formData);
+      
+      if (newUser && onInvite) {
+        onInvite({
+          type: 'email',
+          user: newUser,
+          ...formData,
+        });
+      }
+    } catch (error) {
+      console.error('Error inviting user:', error);
+    }
+    
+    // Reset form and close modal
+    setFormData({
+      name: '',
+      email: '',
+      role: 'member',
+      department: '',
+      position: '',
+      message: '',
+    });
+    onClose();
   };
 
-  const renderProfileSection = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Perfil do Usuário</h2>
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center space-x-6 mb-6">
-            <div className="relative group">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold overflow-hidden">
-                {previewUrl ? (
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  'AS'
-                )}
-              </div>
-              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Ana Silva</h3>
-              <p className="text-slate-600 dark:text-slate-400">ana@company.com</p>
-              <div className="flex items-center space-x-2 mt-2">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                  Administrador
-                </span>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <input
-                type="file"
-                id="photo-upload"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <label
-                htmlFor="photo-upload"
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Editar Foto</span>
-              </label>
-              
-              {selectedFile && (
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
-                    <FileImage className="w-4 h-4" />
-                    <span className="truncate max-w-32">{selectedFile.name}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={handleUpload}
-                      disabled={uploading}
-                      className="flex items-center space-x-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded text-xs transition-colors"
-                    >
-                      {uploading ? (
-                        <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Check className="w-3 h-3" />
-                      )}
-                      <span>{uploading ? 'Enviando...' : 'Salvar'}</span>
-                    </button>
-                    <button
-                      onClick={handleCancelUpload}
-                      disabled={uploading}
-                      className="flex items-center space-x-1 px-3 py-1 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded text-xs transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                      <span>Cancelar</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {uploadError && (
-                <div className="flex items-center space-x-2 text-xs text-red-600 dark:text-red-400">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Nome Completo
-              </label>
-              <input
-                type="text"
-                value="Ana Silva"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value="ana@company.com"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Cargo
-              </label>
-              <input
-                type="text"
-                value="CEO & Fundadora"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Telefone
-              </label>
-              <input
-                type="text"
-                value="+55 (11) 99999-9999"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-          
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors mr-3">
-              Salvar Alterações
-            </button>
-            <button className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderModulesSection = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Módulos do Sistema</h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-6">
-          Ative ou desative módulos conforme suas necessidades. Alguns módulos requerem planos pagos.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {mockModules.map((module) => {
-          const isActive = module.status === 'active';
-          const isComingSoon = module.status === 'coming-soon';
-          
-          return (
-            <div key={module.id} className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    isActive 
-                      ? 'bg-emerald-100 dark:bg-emerald-900/30' 
-                      : 'bg-slate-100 dark:bg-slate-700'
-                  }`}>
-                    <span className="text-lg">
-                      {module.icon === 'Home' && '🏠'}
-                      {module.icon === 'Users' && '👥'}
-                      {module.icon === 'DollarSign' && '💰'}
-                      {module.icon === 'UserCheck' && '✅'}
-                      {module.icon === 'Package' && '📦'}
-                      {module.icon === 'BarChart3' && '📊'}
-                      {module.icon === 'Brain' && '🧠'}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white">{module.name}</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{module.description}</p>
-                    {module.features && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {module.features.slice(0, 2).map((feature) => (
-                          <span key={feature} className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
-                            {feature}
-                          </span>
-                        ))}
-                        {module.features.length > 2 && (
-                          <span className="text-xs text-slate-500">+{module.features.length - 2}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {isActive && (
-                  <div className="flex items-center space-x-2">
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span className="text-xs text-emerald-600 font-medium">Ativo</span>
-                  </div>
-                )}
-                
-                {isComingSoon && (
-                  <span className="text-xs text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
-                    Em Breve
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    module.tier === 'free' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : module.tier === 'business'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                      : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                  }`}>
-                    {module.tier === 'free' ? 'Gratuito' : 
-                     module.tier === 'business' ? 'Business' : 'Enterprise'}
-                  </span>
-                  {module.tier !== 'free' && !isActive && (
-                    <Star className="w-4 h-4 text-amber-500" />
-                  )}
-                </div>
-                
-                {!isComingSoon && (
-                  <button 
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      isActive
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50'
-                    }`}
-                  >
-                    {isActive ? 'Desativar' : 'Ativar'}
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  const renderBillingSection = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Cobrança e Planos</h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-6">
-          Gerencie sua assinatura e métodos de pagamento.
-        </p>
-      </div>
-
-      {/* Current Plan */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Plano Atual</h3>
-        <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div>
-            <h4 className="font-semibold text-blue-900 dark:text-blue-100">Plano Free</h4>
-            <p className="text-sm text-blue-700 dark:text-blue-300">Módulo Central • Até 5 usuários</p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">R$ 0</p>
-            <p className="text-sm text-blue-700 dark:text-blue-300">/mês</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Available Plans */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Planos Disponíveis</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <div key={plan.name} className={`relative bg-white dark:bg-slate-800 rounded-xl p-6 border transition-colors ${
-              plan.current 
-                ? 'border-blue-500 ring-2 ring-blue-500/20' 
-                : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
-            }`}>
-              {plan.current && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">
-                    Plano Atual
-                  </span>
-                </div>
-              )}
-              
-              <div className="text-center mb-6">
-                <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{plan.name}</h4>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-slate-900 dark:text-white">{plan.price}</span>
-                  <span className="text-slate-600 dark:text-slate-400">{plan.period}</span>
-                </div>
-              </div>
-              
-              <ul className="space-y-3 mb-6">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-center space-x-3">
-                    <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              
-              <button className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                plan.current
-                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`} disabled={plan.current}>
-                {plan.current ? 'Plano Atual' : plan.name === 'Enterprise' ? 'Contatar Vendas' : 'Fazer Upgrade'}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAppearanceSection = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Aparência</h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-6">
-          Personalize a aparência do sistema conforme sua preferência.
-        </p>
-      </div>
-
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Tema</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => theme === 'dark' && toggleTheme()}
-            className={`p-4 rounded-lg border-2 transition-colors ${
-              theme === 'light' 
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-            }`}
-          >
-            <div className="bg-white rounded-lg p-3 mb-3 border border-slate-200">
-              <div className="h-2 bg-slate-100 rounded mb-2"></div>
-              <div className="h-2 bg-slate-200 rounded w-2/3"></div>
-            </div>
-            <div className="text-center">
-              <span className="font-medium text-slate-900 dark:text-white">Tema Claro</span>
-              {theme === 'light' && <Check className="w-4 h-4 text-blue-600 mx-auto mt-1" />}
-            </div>
-          </button>
-
-          <button
-            onClick={() => theme === 'light' && toggleTheme()}
-            className={`p-4 rounded-lg border-2 transition-colors ${
-              theme === 'dark' 
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                : 'border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            <div className="bg-slate-800 rounded-lg p-3 mb-3 border border-slate-700">
-              <div className="h-2 bg-slate-700 rounded mb-2"></div>
-              <div className="h-2 bg-slate-600 rounded w-2/3"></div>
-            </div>
-            <div className="text-center">
-              <span className="font-medium text-slate-900 dark:text-white">Tema Escuro</span>
-              {theme === 'dark' && <Check className="w-4 h-4 text-blue-600 mx-auto mt-1" />}
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const sections_content = {
-    profile: renderProfileSection,
-    modules: renderModulesSection,
-    billing: renderBillingSection,
-    appearance: renderAppearanceSection,
-    notifications: () => <div className="text-slate-600 dark:text-slate-400">Configurações de notificações em desenvolvimento...</div>,
-    security: () => <div className="text-slate-600 dark:text-slate-400">Configurações de segurança em desenvolvimento...</div>,
-    integrations: () => <div className="text-slate-600 dark:text-slate-400">Integrações em desenvolvimento...</div>,
-    data: () => <div className="text-slate-600 dark:text-slate-400">Configurações de dados em desenvolvimento...</div>,
+  const copyInviteLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Erro ao copiar link:', err);
+    }
   };
+
+  const departments = [
+    'Administração', 'Vendas', 'Marketing', 'Desenvolvimento', 
+    'Design', 'Recursos Humanos', 'Financeiro', 'Operações', 'Suporte'
+  ];
+
+  const roles = [
+    { value: 'member', label: 'Membro', description: 'Acesso básico aos projetos atribuídos' },
+    { value: 'manager', label: 'Gerente', description: 'Pode gerenciar projetos e equipes' },
+    { value: 'admin', label: 'Administrador', description: 'Acesso total ao sistema' },
+  ];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      {/* Sidebar */}
-      <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
-        <div className="p-6">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Configurações</h1>
-          <nav className="space-y-1">
-            {sections.map((section) => {
-              const Icon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-colors ${
-                    activeSection === section.id
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{section.name}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              );
-            })}
-          </nav>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            Convidar Novo Membro
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-6">
-          {sections_content[activeSection as keyof typeof sections_content]()}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Método de convite */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+              Método de Convite
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setInviteMethod('email')}
+                className={`p-4 rounded-lg border-2 transition-colors text-left ${
+                  inviteMethod === 'email'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                }`}
+              >
+                <Mail className="w-6 h-6 text-blue-600 mb-2" />
+                <h3 className="font-medium text-slate-900 dark:text-white">Por Email</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Enviar convite diretamente por email
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInviteMethod('link')}
+                className={`p-4 rounded-lg border-2 transition-colors text-left ${
+                  inviteMethod === 'link'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                }`}
+              >
+                <Copy className="w-6 h-6 text-blue-600 mb-2" />
+                <h3 className="font-medium text-slate-900 dark:text-white">Por Link</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Gerar link de convite para compartilhar
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {inviteMethod === 'email' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Nome Completo *
+                    </label>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="w-full pl-11 pr-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Nome do funcionário"
+                        />
+                      </div>
+                      
+                      {/* Photo Upload for New User */}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold overflow-hidden">
+                          {previewUrl ? (
+                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            formData.name ? formData.name.split(' ').map(n => n[0]).join('').slice(0, 2) : '?'
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <input
+                            type="file"
+                            id="new-user-photo"
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="new-user-photo"
+                            className="flex items-center space-x-2 px-3 py-2 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-sm transition-colors cursor-pointer"
+                          >
+                            <Camera className="w-4 h-4" />
+                            <span>Adicionar Foto</span>
+                          </label>
+                          {selectedFile && (
+                            <div className="flex items-center space-x-2 mt-2">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Email *
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full pl-11 pr-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="email@empresa.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Cargo
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.position}
+                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      className="w-full px-3 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Desenvolvedor, Designer, etc."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Departamento
+                    </label>
+                    <select
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      className="w-full px-3 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Selecionar departamento</option>
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                    Mensagem Personalizada
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    className="w-full px-3 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Adicione uma mensagem de boas-vindas (opcional)"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Nível de Acesso */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                Nível de Acesso *
+              </label>
+              <div className="space-y-3">
+                {roles.map((role) => (
+                  <label key={role.value} className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="role"
+                      value={role.value}
+                      checked={formData.role === role.value}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      className="w-4 h-4 text-blue-600 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:ring-2 mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <Shield className="w-4 h-4 text-slate-500" />
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {role.label}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                        {role.description}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Link gerado */}
+            {inviteMethod === 'link' && inviteLink && (
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Link de Convite Gerado
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={inviteLink}
+                    readOnly
+                    className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={copyInviteLink}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    {linkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <span className="text-sm">{linkCopied ? 'Copiado!' : 'Copiar'}</span>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  Este link expira em 7 dias e pode ser usado apenas uma vez.
+                </p>
+              </div>
+            )}
+          </form>
+        </div>
+        
+        <div className="flex items-center justify-end space-x-3 p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            onClick={(e) => {
+              e.preventDefault();
+              handleSubmit(e as any);
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            {inviteMethod === 'email' ? <Send className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            <span>{inviteMethod === 'email' ? 'Enviar Convite' : 'Gerar Link'}</span>
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default SettingsView;
+export default InviteUserModal;
