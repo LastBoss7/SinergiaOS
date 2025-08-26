@@ -308,13 +308,13 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
                   <input
                     type="text"
                     value={inviteLink}
-                    readOnly
+                    accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.avif"
                     className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm"
                   />
                   <button
                     type="button"
                     onClick={copyInviteLink}
-                    className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="cursor-pointer flex items-center justify-center w-full h-full hover:bg-black/70 transition-colors rounded-full"
                   >
                     {linkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     <span className="text-sm">{linkCopied ? 'Copiado!' : 'Copiar'}</span>

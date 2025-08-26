@@ -166,13 +166,13 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <input
                   type="file"
                   id="user-photo-upload"
-                  accept="image/*"
+                  accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.avif"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
                 <label
                   htmlFor="user-photo-upload"
-                  className="cursor-pointer flex items-center justify-center w-full h-full"
+                  className="cursor-pointer flex items-center justify-center w-full h-full hover:bg-black/70 transition-colors rounded-full"
                 >
                   <Camera className="w-6 h-6" />
                 </label>
