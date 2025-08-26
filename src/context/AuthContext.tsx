@@ -306,7 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const users = JSON.parse(localStorage.getItem('sinergia_users') || '[]');
         
         // Create company
-        const companyId = `company-${Date.now()}`;
+        const companyId = crypto.randomUUID();
         const company: Company = {
           id: companyId,
           name: userData.company.companyName,
@@ -340,7 +340,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('sinergia_companies', JSON.stringify(companies));
         
         // Create admin user
-        const userId = `user-${Date.now()}`;
+        const userId = crypto.randomUUID();
         const user: User = {
           id: userId,
           name: userData.user.name,
@@ -532,7 +532,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Fall back to localStorage
         const users = JSON.parse(localStorage.getItem('sinergia_users') || '[]');
         
-        const userId = `user-${Date.now()}`;
+        const userId = crypto.randomUUID();
         const user: User = {
           id: userId,
           name: userData.name || '',
