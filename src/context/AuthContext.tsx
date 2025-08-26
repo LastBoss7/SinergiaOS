@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthState, User, Company } from '../types';
+import { mockUsers, mockCompanies } from '../data/mockData';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -23,6 +24,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
+    // Initialize localStorage with mock data if not present
+    const initializeMockData = () => {
+      const existingUsers = localStorage.getItem('sinergia_users');
+      const existingCompanies = localStorage.getItem('sinergia_companies');
+      
+      if (!existingUsers) {
+        localStorage.setItem('sinergia_users', JSON.stringify(mockUsers));
+      }
+      
+      if (!existingCompanies) {
+        localStorage.setItem('sinergia_companies', JSON.stringify(mockCompanies));
+      }
+    };
+
+    initializeMockData();
+
     // Check initial session
     const checkSession = async () => {
       try {
@@ -187,7 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         // For demo purposes, we'll use a simple email check
         if (email === 'demo@insightos.com' || email === 'demo@sinergia.com') {
-          await loadUserData('550e8400-e29b-41d4-a716-446655440001');
+          await loadUserData('demo-user');
           return;
         }
 
