@@ -70,7 +70,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
             Perfil do Usuário
@@ -94,7 +94,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {/* Header com foto e info básica */}
           <div className="flex items-start space-x-6 mb-8">
             <div className="relative">
@@ -278,26 +278,26 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <p className="text-sm text-slate-600 dark:text-slate-400">Taxa de Entrega</p>
             </div>
           </div>
-
-          {/* Botões de ação */}
-          {isEditing && (
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                <span>Salvar Alterações</span>
-              </button>
-            </div>
-          )}
         </div>
+        
+        {/* Botões de ação */}
+        {isEditing && (
+          <div className="flex items-center justify-end space-x-3 p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              <span>Salvar Alterações</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
