@@ -4,6 +4,8 @@ import { AuthProvider } from './context/AuthContext';
 import AuthWrapper from './components/Auth/AuthWrapper';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
+import MobileNavigation from './components/Layout/MobileNavigation';
+import MobileDashboard from './components/Mobile/MobileDashboard';
 import DashboardView from './components/Dashboard/DashboardView';
 import CRMView from './components/CRM/CRMView';
 import FinanceView from './components/Finance/FinanceView';
@@ -101,12 +103,69 @@ function App() {
       <ThemeProvider>
         <AuthWrapper>
           <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
+            {/* Mobile Navigation */}
+            <MobileNavigation 
+              activeView={activeView} 
+              onViewChange={setActiveView}
+              onCommandOpen={() => setIsCommandOpen(true)}
+            />
+            
+            {/* Desktop Layout */}
             <div className="flex">
-              <Sidebar activeView={activeView} onViewChange={setActiveView} />
-              <div className="flex-1">
-                <Header onCommandOpen={() => setIsCommandOpen(true)} />
+              <div className="hidden lg:block">
+                <Sidebar activeView={activeView} onViewChange={setActiveView} />
+              </div>
+              <div className="flex-1 lg:ml-0">
+                <div className="hidden lg:block">
+                  <Header onCommandOpen={() => setIsCommandOpen(true)} />
+                </div>
                 <main className="p-6">
-                  {renderActiveView()}
+                  {/* Mobile Dashboard */}
+                  <div className="lg:hidden">
+                    {activeView === 'dashboard' ? (
+                      <MobileDashboard />
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                            {activeView === 'crm' ? 'CRM & Vendas' :
+                             activeView === 'finance' ? 'Financeiro' :
+                             activeView === 'projects' ? 'Projetos' :
+                             activeView === 'team' ? 'Equipe' :
+                             activeView === 'hr' ? 'Recursos Humanos' :
+                             activeView === 'operations' ? 'Operações' :
+                             activeView === 'analytics' ? 'Analytics' :
+                             activeView === 'reports' ? 'Relatórios' :
+                             activeView === 'messages' ? 'Mensagens' :
+                             activeView === 'settings' ? 'Configurações' : 'Módulo'}
+                          </h2>
+                          <p className="text-slate-600 dark:text-slate-400 mb-6">
+                            Versão mobile otimizada em desenvolvimento. Use a versão desktop para acesso completo.
+                          </p>
+                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                <Zap className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                                  Funcionalidade Disponível
+                                </h4>
+                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                  Acesse pelo desktop ou tablet para experiência completa
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Desktop Views */}
+                  <div className="hidden lg:block">
+                    {renderActiveView()}
+                  </div>
                 </main>
               </div>
             </div>

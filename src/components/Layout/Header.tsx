@@ -15,7 +15,7 @@ const Header: React.FC<HeaderProps> = ({ onCommandOpen }) => {
   const [showSearch, setShowSearch] = useState(false);
 
   return (
-    <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 sticky top-0 z-40">
+    <header className="hidden lg:flex h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 items-center justify-between px-6 sticky top-0 z-40">
       <div className="flex items-center space-x-4">
         <button
           onClick={onCommandOpen}

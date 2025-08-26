@@ -76,6 +76,8 @@ export default {
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-top': 'env(safe-area-inset-top)',
       },
       backdropBlur: {
         xs: '2px',
