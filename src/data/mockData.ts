@@ -1,5 +1,34 @@
 import { User, Task, Project, Module, Message, AIInsight } from '../types';
 
+export interface Company {
+  id: string;
+  name: string;
+  email: string;
+  plan: 'free' | 'business' | 'enterprise';
+  industry?: string;
+  size?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  createdAt: string;
+  settings: {
+    timezone: string;
+    currency: string;
+    language: string;
+    workingHours: {
+      start: string;
+      end: string;
+      workingDays: number[];
+    };
+    notifications: {
+      email: boolean;
+      push: boolean;
+      slack: boolean;
+    };
+  };
+  modules: string[];
+}
+
 export const mockUsers: User[] = [
   { 
     id: '1', 
@@ -381,7 +410,7 @@ export const mockInsights: AIInsight[] = [
   }
 ];
 
-export const mockCompanies: Company[] = [
+export const mockCompanies = [
   {
     id: 'comp-1',
     name: 'Empresa Demo',

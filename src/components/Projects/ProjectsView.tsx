@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
-import { Plus, Filter, Search, Calendar, Users, BarChart3 } from 'lucide-react';
+import { Plus, Filter, Search, Calendar, Users, BarChart3, CheckCircle, AlertTriangle, Timer, Star } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import ProjectModal from './ProjectModal';
@@ -18,6 +18,13 @@ const ProjectsView: React.FC = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
+
+  const columns = [
+    { id: 'todo', title: 'Para Fazer', color: 'slate' },
+    { id: 'in-progress', title: 'Em Andamento', color: 'blue' },
+    { id: 'review', title: 'Em Revisão', color: 'amber' },
+    { id: 'done', title: 'Concluído', color: 'emerald' },
+  ];
 
   // Load data from Supabase
   useEffect(() => {
@@ -97,13 +104,6 @@ const ProjectsView: React.FC = () => {
 
     loadData();
   }, [company?.id]);
-
-  const columns = [
-    { id: 'todo', title: 'Para Fazer', color: 'slate' },
-    { id: 'in-progress', title: 'Em Andamento', color: 'blue' },
-    { id: 'review', title: 'Em Revisão', color: 'amber' },
-    { id: 'done', title: 'Concluído', color: 'emerald' },
-  ];
 
   const getColumnColor = (color: string) => {
     const colors = {

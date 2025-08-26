@@ -1,30 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search, Filter, Phone, Mail, Calendar, DollarSign, TrendingUp, Users, Target, Award, Clock, MoreVertical, Edit, Trash2, Eye, Star, Building, MapPin, User } from 'lucide-react';
 
-function getStageColor(stage: string) {
-  switch (stage) {
-    case 'lead': return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
-    case 'qualified': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-    case 'proposal': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
-    case 'negotiation': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
-    case 'closed-won': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
-    case 'closed-lost': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-    default: return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
-  }
-}
-
-function getStageText(stage: string) {
-  switch (stage) {
-    case 'lead': return 'Lead';
-    case 'qualified': return 'Qualificado';
-    case 'proposal': return 'Proposta';
-    case 'negotiation': return 'Negociação';
-    case 'closed-won': return 'Fechado';
-    case 'closed-lost': return 'Perdido';
-    default: return 'Lead';
-  }
-}
-
 const CRMView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('leads');
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,10 +88,40 @@ const CRMView: React.FC = () => {
     }
   ];
 
+  const totalLeadsValue = leads.reduce((sum, lead) => sum + lead.value, 0);
+  const avgDealSize = totalLeadsValue / leads.length;
+
   const getStageColor = (stage: string) => {
     switch (stage) {
       case 'lead': return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
       case 'qualified': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'proposal': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+      case 'negotiation': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+      case 'closed-won': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+      case 'closed-lost': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      default: return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
+    }
+  };
+
+  const getStageText = (stage: string) => {
+    switch (stage) {
+      case 'lead': return 'Lead';
+      case 'qualified': return 'Qualificado';
+      case 'proposal': return 'Proposta';
+      case 'negotiation': return 'Negociação';
+      case 'closed-won': return 'Fechado';
+      case 'closed-lost': return 'Perdido';
+      default: return 'Lead';
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(amount);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -127,9 +133,12 @@ const CRMView: React.FC = () => {
             Gerencie leads, clientes e oportunidades de vendas
           </p>
         </div>
-        <button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+        <button 
+          onClick={() => activeTab === 'leads' ? setShowAddLead(true) : setShowAddCustomer(true)}
+          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+        >
           <Plus className="w-4 h-4" />
-          <span onClick={() => activeTab === 'leads' ? setShowAddLead(true) : setShowAddCustomer(true)}>
+          <span>
             {activeTab === 'leads' ? 'Novo Lead' : 'Novo Cliente'}
           </span>
         </button>
@@ -162,7 +171,7 @@ const CRMView: React.FC = () => {
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-              R$ {(totalLeadsValue / 1000).toFixed(0)}k
+              {formatCurrency(totalLeadsValue / 1000)}k
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Pipeline Total</p>
             <p className="text-xs text-emerald-600 dark:text-emerald-400">+23% este mês</p>
@@ -194,7 +203,7 @@ const CRMView: React.FC = () => {
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-              R$ {(avgDealSize / 1000).toFixed(0)}k
+              {formatCurrency(avgDealSize / 1000)}k
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Ticket Médio</p>
             <p className="text-xs text-emerald-600 dark:text-emerald-400">+15% este mês</p>
@@ -288,7 +297,7 @@ const CRMView: React.FC = () => {
                     </td>
                     <td className="p-4">
                       <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        R$ {(lead.value / 1000).toFixed(0)}k
+                        {formatCurrency(lead.value)}
                       </span>
                     </td>
                     <td className="p-4">
@@ -373,7 +382,7 @@ const CRMView: React.FC = () => {
                     </td>
                     <td className="p-4">
                       <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        R$ {(customer.totalRevenue / 1000).toFixed(0)}k
+                        {formatCurrency(customer.totalRevenue)}
                       </span>
                     </td>
                     <td className="p-4">

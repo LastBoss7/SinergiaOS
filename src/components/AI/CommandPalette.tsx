@@ -23,15 +23,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onActi
     'Exportar dados do último mês'
   ]);
 
-  const categories = [
-    { id: 'all', name: 'Todos', icon: Command },
-    { id: 'create', name: 'Criar', icon: Plus },
-    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
-    { id: 'team', name: 'Equipe', icon: Users },
-    { id: 'automation', name: 'Automação', icon: Zap },
-    { id: 'communication', name: 'Comunicação', icon: MessageCircle },
-  ];
-  
   const [suggestions] = useState([
     { text: 'Criar novo projeto', action: 'create-project', icon: Plus, category: 'create', description: 'Iniciar um novo projeto com equipe' },
     { text: 'Adicionar nova tarefa', action: 'create-task', icon: Target, category: 'create', description: 'Criar tarefa e atribuir responsável' },
