@@ -8,6 +8,7 @@ const MobileDashboard: React.FC = () => {
   const [showAllInsights, setShowAllInsights] = useState(false);
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [notifications] = useState(3);
+  const [notifications] = useState(3);
 
   const quickStats = [
     { label: 'Projetos', value: '4', icon: BarChart3, color: 'blue', change: '+2', description: 'ativos' },

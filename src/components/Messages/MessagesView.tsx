@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Plus, Hash, Users, Search, Send, Paperclip, Smile, MoreHorizontal, Phone, Video } from 'lucide-react';
 import { mockMessages, mockUsers } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
 
 const MessagesView: React.FC = () => {
+  const { user } = useAuth();
   const [activeChannel, setActiveChannel] = useState('geral');
   const [messageInput, setMessageInput] = useState('');
 
@@ -38,9 +40,9 @@ const MessagesView: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex">
+    <div className="h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] flex">
       {/* Sidebar de Canais */}
-      <div className="w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col">
+      <div className="w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden lg:flex">
         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Mensagens</h1>
@@ -127,6 +129,53 @@ const MessagesView: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Channel List */}
+      <div className="lg:hidden w-full bg-white dark:bg-slate-800 rounded-xl p-4 mb-6 border border-slate-200 dark:border-slate-700">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Canais</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {channels.map((channel) => (
+            <button
+              key={channel.id}
+              onClick={() => setActiveChannel(channel.id)}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                activeChannel === channel.id
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Hash className="w-4 h-4" />
+                <span className="text-sm font-medium">{channel.name}</span>
+              </div>
+              {channel.unread > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                  {channel.unread}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        
+        <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-6 mb-3">
+          Mensagens Diretas
+        </h3>
+        <div className="space-y-2">
+          {directMessages.map((dm) => (
+            <div key={dm.user.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                {dm.user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </div>
+              <span className="text-sm text-slate-900 dark:text-white">{dm.user.name}</span>
+              {dm.unread > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[16px] text-center">
+                  {dm.unread}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 

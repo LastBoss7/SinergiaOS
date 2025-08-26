@@ -19,13 +19,6 @@ const ProjectsView: React.FC = () => {
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
 
-  const columns = [
-    { id: 'todo', title: 'Para Fazer', color: 'slate' },
-    { id: 'in-progress', title: 'Em Andamento', color: 'blue' },
-    { id: 'review', title: 'Em Revisão', color: 'amber' },
-    { id: 'done', title: 'Concluído', color: 'emerald' },
-  ];
-
   // Load data from Supabase
   useEffect(() => {
     const loadData = async () => {
@@ -104,6 +97,13 @@ const ProjectsView: React.FC = () => {
 
     loadData();
   }, [company?.id]);
+
+  const columns = [
+    { id: 'todo', title: 'Para Fazer', color: 'slate' },
+    { id: 'in-progress', title: 'Em Andamento', color: 'blue' },
+    { id: 'review', title: 'Em Revisão', color: 'amber' },
+    { id: 'done', title: 'Concluído', color: 'emerald' },
+  ];
 
   const getColumnColor = (color: string) => {
     const colors = {
