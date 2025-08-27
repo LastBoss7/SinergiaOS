@@ -322,6 +322,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
                   />
                 </div>
               </>
+              </>
             )}
 
             {/* Nível de Acesso */}

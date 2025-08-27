@@ -124,15 +124,6 @@ const ProjectsView: React.FC = () => {
       blue: 'border-blue-200 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30',
       amber: 'border-amber-200 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30',
       emerald: 'border-emerald-200 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30',
-      
-      // Update localStorage
-      const allProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
-      const filteredProjects = allProjects.filter((p: any) => p.id !== projectId);
-      localStorage.setItem('insightos_projects', JSON.stringify(filteredProjects));
-      
-      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
-      const filteredTasks = allTasks.filter((t: any) => t.project !== projects.find(p => p.id === projectId)?.name);
-      localStorage.setItem('insightos_tasks', JSON.stringify(filteredTasks));
     };
     return colors[color as keyof typeof colors] || colors.slate;
   };
@@ -161,18 +152,11 @@ const ProjectsView: React.FC = () => {
       setProjects(updatedProjects);
       
       // Update localStorage
-      const updatedTasks = tasks.map(t => 
+      const allProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
       const updatedAllProjects = allProjects.map((p: any) => 
         p.id === selectedProjectForEdit.id ? { ...p, ...projectData } : p
-          : t);
-      setTasks(updatedTasks);
-      
-      // Update localStorage
-      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
-      const updatedAllTasks = allTasks.map((t: any) => 
-        t.id === selectedTaskForEdit.id ? { ...t, ...taskData } : t
       );
-      localStorage.setItem('insightos_tasks', JSON.stringify(updatedAllTasks));
+      localStorage.setItem('insightos_projects', JSON.stringify(updatedAllProjects));
     } else {
       // Create new project
       const newProject: Project = {
@@ -187,7 +171,6 @@ const ProjectsView: React.FC = () => {
         spent: projectData.spent || 0,
         createdAt: new Date().toISOString(),
         dueDate: projectData.dueDate,
-        companyId: projectData.companyId || '',
         companyId: company?.id || '',
         client: projectData.client,
         tags: projectData.tags || [],
@@ -230,6 +213,32 @@ const ProjectsView: React.FC = () => {
       emerald: 'border-emerald-200 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30',
     };
     return colors[color as keyof typeof colors] || colors.slate;
+  };
+
+  const handleSaveTask = (taskData: Partial<Task>) => {
+    if (selectedTaskForEdit) {
+      // Edit existing task
+      const updatedTasks = tasks.map(t => 
+        t.id === selectedTaskForEdit.id 
+          ? { ...t, ...taskData }
+          : t);
+      setTasks(updatedTasks);
+      
+      // Update localStorage
+      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      const updatedAllTasks = allTasks.map((t: any) => 
+        t.id === selectedTaskForEdit.id ? { ...t, ...taskData } : t
+      );
+      localStorage.setItem('insightos_tasks', JSON.stringify(updatedAllTasks));
+    } else {
+      // Create new task
+      const newTask: Task = {
+        id: `task-${Date.now()}`,
+        title: taskData.title!,
+        description: taskData.description || '',
+        status: taskData.status as any,
+        priority: taskData.priority as any,
+        assignee: taskData.assignee || null,
         reporter: taskData.reporter || null,
         dueDate: taskData.dueDate,
         project: taskData.project!,
