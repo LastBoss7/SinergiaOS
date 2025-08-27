@@ -29,9 +29,24 @@ const ProjectsView: React.FC = () => {
   // Load data from Supabase
   useEffect(() => {
     const loadData = async () => {
-      if (!company?.id) return;
+      if (!company?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
+        // Load from localStorage first
+        const localProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
+        const localTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+        
+        // Filter by company
+        const companyProjects = localProjects.filter((p: any) => p.companyId === company.id);
+        const companyTasks = localTasks.filter((t: any) => t.companyId === company.id);
+        
+        // Set data from localStorage
+        setProjects(companyProjects.length > 0 ? companyProjects : mockProjects);
+        setTasks(companyTasks.length > 0 ? companyTasks : mockTasks);
+        
         // Load projects
         const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
@@ -93,11 +108,16 @@ const ProjectsView: React.FC = () => {
           companyId: task.company_id,
         }));
 
-        setProjects(formattedProjects);
+          companyId: company?.id || '',
         setTasks(formattedTasks);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
+        
+        // Update localStorage
+        const allProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
+        allProjects.push(newProject);
+        localStorage.setItem('insightos_projects', JSON.stringify(allProjects));
         setLoading(false);
       }
     };
@@ -111,6 +131,15 @@ const ProjectsView: React.FC = () => {
       blue: 'border-blue-200 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30',
       amber: 'border-amber-200 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30',
       emerald: 'border-emerald-200 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30',
+      
+      // Update localStorage
+      const allProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
+      const filteredProjects = allProjects.filter((p: any) => p.id !== projectId);
+      localStorage.setItem('insightos_projects', JSON.stringify(filteredProjects));
+      
+      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      const filteredTasks = allTasks.filter((t: any) => t.project !== projects.find(p => p.id === projectId)?.name);
+      localStorage.setItem('insightos_tasks', JSON.stringify(filteredTasks));
     };
     return colors[color as keyof typeof colors] || colors.slate;
   };

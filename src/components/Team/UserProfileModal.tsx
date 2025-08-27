@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Mail, Phone, MapPin, Calendar, Edit3, Save, Camera, Shield, User as UserIcon, Upload, FileImage, Check, AlertCircle } from 'lucide-react';
+import { X, Mail, Phone, MapPin, Calendar, Edit3, Save, Camera, Shield, User as UserIcon, Upload, FileImage, Check, AlertCircle, Award, Target, Users, TrendingUp, Star, BookOpen } from 'lucide-react';
 import { User } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onSave,
   canEdit = false 
 }) => {
+  const { user: currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -30,7 +32,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     location: 'São Paulo, SP',
     department: 'Desenvolvimento',
     joinDate: '2023-06-15',
-    bio: 'Desenvolvedor full-stack com 5 anos de experiência em React, Node.js e Python. Apaixonado por criar soluções inovadoras e trabalhar em equipe.',
+    bio: user?.bio || 'Desenvolvedor full-stack com 5 anos de experiência em React, Node.js e Python. Apaixonado por criar soluções inovadoras e trabalhar em equipe.',
+    position: user?.position || 'Desenvolvedor',
+    skills: user?.skills || ['React', 'TypeScript', 'Node.js']
   });
 
   if (!isOpen || !user) return null;
@@ -93,6 +97,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       name: formData.name,
       email: formData.email,
       role: formData.role as any,
+      position: formData.position,
+      bio: formData.bio,
+      skills: formData.skills
     });
     setIsEditing(false);
   };
@@ -118,11 +125,30 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const getRoleText = (role: string) => {
     switch (role) {
       case 'admin': return 'Administrador';
+      case 'super_admin': return 'Super Admin';
       case 'manager': return 'Gerente';
       case 'member': return 'Membro';
       default: return 'Membro';
     }
   };
+
+  const getHierarchyLevel = (level: number) => {
+    switch (level) {
+      case 0: return 'C-Level';
+      case 1: return 'Gerência';
+      case 2: return 'Coordenação';
+      case 3: return 'Operacional';
+      default: return 'Não definido';
+    }
+  };
+
+  // Check if current user can edit this profile
+  const canEditProfile = canEdit && (
+    currentUser?.id === user.id || 
+    currentUser?.role === 'admin' || 
+    currentUser?.role === 'super_admin' ||
+    (currentUser?.hierarchy?.directReports?.includes(user.id))
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -132,7 +158,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             Perfil do Usuário
           </h2>
           <div className="flex items-center space-x-2">
-            {canEdit && !isEditing && (
+            {canEditProfile && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="flex items-center space-x-2 px-3 py-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -206,16 +232,34 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Cargo
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.position}
+                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="CEO, Desenvolvedor, Designer..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Função
                     </label>
                     <select
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')}
                     >
                       <option value="member">Membro</option>
                       <option value="manager">Gerente</option>
-                      <option value="admin">Administrador</option>
+                      {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                        <option value="admin">Administrador</option>
+                      )}
+                      {currentUser?.role === 'super_admin' && (
+                        <option value="super_admin">Super Admin</option>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -238,6 +282,14 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         {getRoleText(user.role)}
                       </span>
                     </div>
+                    {user.hierarchy && (
+                      <div className="flex items-center space-x-2">
+                        <Award className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          {getHierarchyLevel(user.hierarchy.level)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -333,7 +385,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <UserIcon className="w-5 h-5 text-slate-500" />
                 <div>
                   <p className="text-sm font-medium text-slate-900 dark:text-white">Departamento</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{formData.department}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{user.department || 'Não definido'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <Award className="w-5 h-5 text-slate-500" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">Cargo</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{user.position || 'Não definido'}</p>
                 </div>
               </div>
 
@@ -342,24 +402,59 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <div>
                   <p className="text-sm font-medium text-slate-900 dark:text-white">Data de Entrada</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {new Date(formData.joinDate).toLocaleDateString('pt-BR')}
+                    {new Date(user.joinDate).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">Projetos Ativos</p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs rounded-full">
-                    Lançamento Beta
-                  </span>
-                  <span className="px-2 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 text-xs rounded-full">
-                    Sistema Analytics
-                  </span>
+              {user.hierarchy && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">Hierarquia</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-600 dark:text-slate-400">Nível</span>
+                      <span className="text-xs font-medium text-slate-900 dark:text-white">
+                        {getHierarchyLevel(user.hierarchy.level)}
+                      </span>
+                    </div>
+                    {user.hierarchy.reportsTo && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-600 dark:text-slate-400">Reporta para</span>
+                        <span className="text-xs font-medium text-slate-900 dark:text-white">
+                          {mockUsers.find(u => u.id === user.hierarchy?.reportsTo)?.name || 'N/A'}
+                        </span>
+                      </div>
+                    )}
+                    {user.hierarchy.directReports && user.hierarchy.directReports.length > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-600 dark:text-slate-400">Subordinados</span>
+                        <span className="text-xs font-medium text-slate-900 dark:text-white">
+                          {user.hierarchy.directReports.length}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
+
+          {/* Skills */}
+          {user.skills && user.skills.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-center space-x-2">
+                <Star className="w-5 h-5 text-amber-500" />
+                <span>Habilidades</span>
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {user.skills.map((skill, index) => (
+                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-sm rounded-full">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Bio */}
           <div className="mb-6">
@@ -399,7 +494,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         </div>
         
         {/* Botões de ação */}
-        {isEditing && (
+        {isEditing && canEditProfile && (
           <div className="flex items-center justify-end space-x-3 p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
             <button
               onClick={() => setIsEditing(false)}

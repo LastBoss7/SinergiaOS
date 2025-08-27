@@ -14,6 +14,13 @@ export interface User {
   permissions: Permission[];
   companyId: string;
   isActive: boolean;
+  hierarchy?: {
+    level: number;
+    reportsTo?: string;
+    directReports?: string[];
+  };
+  skills?: string[];
+  bio?: string;
 }
 
 export interface Company {
@@ -30,6 +37,13 @@ export interface Company {
   createdAt: string;
   settings: CompanySettings;
   modules: string[];
+  hierarchy?: {
+    levels: {
+      name: string;
+      permissions: string[];
+      canManage: string[];
+    }[];
+  };
 }
 
 export interface CompanySettings {
@@ -109,6 +123,13 @@ export interface Message {
   edited?: boolean;
   reactions: Reaction[];
   companyId: string;
+  type?: 'text' | 'file' | 'system' | 'announcement';
+  edited?: boolean;
+  reactions?: Reaction[];
+  attachments?: any[];
+  mentions?: string[];
+  threadId?: string;
+  isPrivate?: boolean;
 }
 
 export interface Reaction {

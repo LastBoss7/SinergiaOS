@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Hash, Users, Search, Send, Paperclip, Smile, MoreHorizontal, Phone, Video } from 'lucide-react';
+import { Plus, Hash, Users, Search, Send, Paperclip, Smile, MoreHorizontal, Phone, Video, UserPlus, Settings, Archive, Pin, Star, Reply, Edit, Trash2, Copy, Forward } from 'lucide-react';
 import { mockMessages, mockUsers } from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
 
@@ -7,6 +7,9 @@ const MessagesView: React.FC = () => {
   const { user } = useAuth();
   const [activeChannel, setActiveChannel] = useState('geral');
   const [messageInput, setMessageInput] = useState('');
+  const [messages, setMessages] = useState(mockMessages);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [showChannelSettings, setShowChannelSettings] = useState(false);
 
   const channels = [
     { id: 'geral', name: 'Geral', type: 'public', unread: 3 },
@@ -14,20 +17,36 @@ const MessagesView: React.FC = () => {
     { id: 'marketing', name: 'Marketing', type: 'public', unread: 0 },
     { id: 'desenvolvimento', name: 'Desenvolvimento', type: 'public', unread: 5 },
     { id: 'recursos-humanos', name: 'Recursos Humanos', type: 'private', unread: 0 },
+    { id: 'random', name: 'Random', type: 'public', unread: 2 },
+    { id: 'anuncios', name: 'Anúncios', type: 'public', unread: 0 },
   ];
 
   const directMessages = [
     { user: mockUsers[1], unread: 2, lastMessage: 'Vou revisar o documento hoje', time: '10:30' },
     { user: mockUsers[2], unread: 0, lastMessage: 'Perfeito! Obrigada', time: '09:15' },
     { user: mockUsers[3], unread: 1, lastMessage: 'Posso te ligar em 10min?', time: '08:45' },
+    { user: mockUsers[4], unread: 0, lastMessage: 'Reunião confirmada para amanhã', time: '08:00' },
   ];
 
-  const channelMessages = mockMessages.filter(msg => msg.channel === activeChannel);
+  const channelMessages = messages.filter(msg => 
+    selectedUser ? msg.sender.id === selectedUser || msg.sender.id === user?.id : msg.channel === activeChannel
+  );
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
-      // Aqui seria implementada a lógica para enviar mensagem
-      console.log('Enviando mensagem:', messageInput);
+      const newMessage = {
+        id: `msg-${Date.now()}`,
+        content: messageInput,
+        sender: user!,
+        timestamp: new Date().toISOString(),
+        channel: selectedUser ? 'direct' : activeChannel,
+        type: 'text' as const,
+        edited: false,
+        reactions: [],
+        companyId: user?.companyId || ''
+      };
+      
+      setMessages([...messages, newMessage]);
       setMessageInput('');
     }
   };
@@ -70,9 +89,9 @@ const MessagesView: React.FC = () => {
               {channels.map((channel) => (
                 <button
                   key={channel.id}
-                  onClick={() => setActiveChannel(channel.id)}
+                  onClick={() => handleChannelSelect(channel.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
-                    activeChannel === channel.id
+                    activeChannel === channel.id && !selectedUser
                       ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
@@ -100,6 +119,7 @@ const MessagesView: React.FC = () => {
               {directMessages.map((dm) => (
                 <button
                   key={dm.user.id}
+                  onClick={() => handleDirectMessageSelect(dm.user.id)}
                   className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="relative">
@@ -188,34 +208,47 @@ const MessagesView: React.FC = () => {
               <Hash className="w-5 h-5 text-slate-600 dark:text-slate-400" />
               <div>
                 <h2 className="font-semibold text-slate-900 dark:text-white">
-                  {channels.find(c => c.id === activeChannel)?.name || 'Geral'}
+                  {getCurrentChannelName()}
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {mockUsers.filter(u => u.status === 'online').length} membros online
+                  {selectedUser ? 'Conversa direta' : `${mockUsers.filter(u => u.status === 'online').length} membros online`}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-              </button>
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <Video className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-              </button>
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <Users className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-              </button>
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <MoreHorizontal className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-              </button>
+              {selectedUser ? (
+                <>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <Video className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <UserPlus className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <Users className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                  <button 
+                    onClick={() => setShowChannelSettings(!showChannelSettings)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Mensagens */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
           {channelMessages.map((message) => (
-            <div key={message.id} className="flex items-start space-x-3">
+            <div key={message.id} className="flex items-start space-x-3 group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-lg transition-colors">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                 {message.sender.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </div>
@@ -224,6 +257,11 @@ const MessagesView: React.FC = () => {
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {message.sender.name}
                   </span>
+                  {message.sender.role === 'admin' && (
+                    <span className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs rounded-full">
+                      Admin
+                    </span>
+                  )}
                   <span className="text-xs text-slate-500 dark:text-slate-400">
                     {new Date(message.timestamp).toLocaleTimeString('pt-BR', { 
                       hour: '2-digit', 
@@ -234,6 +272,29 @@ const MessagesView: React.FC = () => {
                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                   {message.content}
                 </p>
+                {message.edited && (
+                  <span className="text-xs text-slate-500 dark:text-slate-500 italic">
+                    (editado)
+                  </span>
+                )}
+              </div>
+              <div className="opacity-0 group-hover:opacity-100 flex items-center space-x-1 transition-opacity">
+                <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                  <Reply className="w-3 h-3 text-slate-500" />
+                </button>
+                <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                  <Star className="w-3 h-3 text-slate-500" />
+                </button>
+                {message.sender.id === user?.id && (
+                  <>
+                    <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                      <Edit className="w-3 h-3 text-slate-500" />
+                    </button>
+                    <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -269,7 +330,7 @@ const MessagesView: React.FC = () => {
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={`Mensagem para #${channels.find(c => c.id === activeChannel)?.name || 'geral'}`}
+                placeholder={selectedUser ? `Mensagem para ${mockUsers.find(u => u.id === selectedUser)?.name}` : `Mensagem para #${getCurrentChannelName()}`}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
@@ -284,7 +345,67 @@ const MessagesView: React.FC = () => {
               <Send className="w-5 h-5" />
             </button>
           </div>
+          
+          {/* Typing indicator */}
+          <div className="px-4 py-2">
+            <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-500">
+              <div className="flex space-x-1">
+                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce"></div>
+                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+              <span>João Costa está digitando...</span>
+            </div>
+          </div>
         </div>
+        
+        {/* Channel Settings Panel */}
+        {showChannelSettings && !selectedUser && (
+          <div className="w-64 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Configurações do Canal</h3>
+              <button 
+                onClick={() => setShowChannelSettings(false)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                <Pin className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Fixar Canal</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                <UserPlus className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Adicionar Membros</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                <Archive className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Arquivar Canal</span>
+              </button>
+            </div>
+            
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-3">Membros do Canal</h4>
+              <div className="space-y-2">
+                {mockUsers.slice(0, 4).map((member) => (
+                  <div key={member.id} className="flex items-center space-x-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs">
+                      {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{member.name}</span>
+                    <div className={`w-2 h-2 rounded-full ${
+                      member.status === 'online' ? 'bg-emerald-400' :
+                      member.status === 'away' ? 'bg-amber-400' : 'bg-slate-400'
+                    }`}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

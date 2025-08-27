@@ -38,13 +38,46 @@ const DashboardView: React.FC = () => {
   // Load dashboard data from Supabase
   useEffect(() => {
     const loadDashboardData = async () => {
-      if (!company?.id) return;
+      if (!company?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
+        // Always try to load from localStorage first for better UX
+        const localProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
+        const localTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+        const localUsers = JSON.parse(localStorage.getItem('insightos_users') || '[]');
+        
+        // Filter by company
+        const companyProjects = localProjects.filter((p: any) => p.companyId === company.id);
+        const companyTasks = localTasks.filter((t: any) => t.companyId === company.id);
+        const companyUsers = localUsers.filter((u: any) => u.companyId === company.id && u.isActive);
+        
+        // Set data immediately from localStorage
+        if (companyProjects.length > 0) {
+          setProjects(companyProjects);
+        } else {
+          setProjects(mockProjects);
+        }
+        
+        if (companyTasks.length > 0) {
+          setTasks(companyTasks);
+        } else {
+          setTasks(mockTasks);
+        }
+        
+        if (companyUsers.length > 0) {
+          setUsers(companyUsers);
+        } else {
+          setUsers(mockUsers);
+        }
+        
         // Check if company ID is a valid UUID (Supabase format)
         const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(company.id);
         
-        if (isValidUUID && company.id !== '550e8400-e29b-41d4-a716-446655440001') {
+        // Try Supabase only if configured and valid UUID
+        if (isValidUUID && company.id !== '550e8400-e29b-41d4-a716-446655440001' && import.meta.env.VITE_SUPABASE_URL) {
           // Load tasks
           const { data: tasksData } = await supabase
             .from('tasks')
@@ -100,21 +133,14 @@ const DashboardView: React.FC = () => {
             setUsers(usersData);
           } else {
             // Fallback to mock data
-            setUsers(mockUsers);
+            setUsers(companyUsers.length > 0 ? companyUsers : mockUsers);
           }
         } else {
-          // Company ID is not a valid UUID, use mock data
-          console.info('Using mock data - company ID is not a valid UUID');
-          setTasks(mockTasks);
-          setProjects(mockProjects);
-          setUsers(mockUsers);
+          // Use localStorage data (already set above)
+          console.info('Using localStorage data for company:', company.id);
         }
       } catch (error) {
-        console.info('Supabase not available, using mock data:', error);
-        // Fallback to mock data
-        setTasks(mockTasks);
-        setProjects(mockProjects);
-        setUsers(mockUsers);
+        console.info('Error loading data, using localStorage fallback:', error);
       } finally {
         setLoading(false);
       }
@@ -166,12 +192,41 @@ const DashboardView: React.FC = () => {
           ? { ...t, ...taskData }
           : t
       ));
+      
+      // Update localStorage
+      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      const updatedTasks = allTasks.map((t: any) => 
+        t.id === selectedTask.id ? { ...t, ...taskData } : t
+      );
+      localStorage.setItem('insightos_tasks', JSON.stringify(updatedTasks));
+    } else {
+      // Create new task
+      const newTask = {
+        ...taskData,
+        id: `task-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        companyId: company?.id || '',
+        reporter: user
+      };
+      
+      setTasks([...tasks, newTask as Task]);
+      
+      // Update localStorage
+      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      allTasks.push(newTask);
+      localStorage.setItem('insightos_tasks', JSON.stringify(allTasks));
     }
     setSelectedTask(null);
   };
 
   const handleDeleteTask = (taskId: string) => {
     setTasks(tasks.filter(t => t.id !== taskId));
+    
+    // Update localStorage
+    const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+    const filteredTasks = allTasks.filter((t: any) => t.id !== taskId);
+    localStorage.setItem('insightos_tasks', JSON.stringify(filteredTasks));
   };
 
   const stats = [

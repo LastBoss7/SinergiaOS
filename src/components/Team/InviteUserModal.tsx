@@ -123,6 +123,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
     { value: 'member', label: 'Membro', description: 'Acesso básico aos projetos atribuídos' },
     { value: 'manager', label: 'Gerente', description: 'Pode gerenciar projetos e equipes' },
     { value: 'admin', label: 'Administrador', description: 'Acesso total ao sistema' },
+    { value: 'super_admin', label: 'Super Admin', description: 'Controle total da empresa' },
   ];
 
   return (

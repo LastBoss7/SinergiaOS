@@ -47,6 +47,12 @@ export const mockUsers: User[] = [
     ],
     companyId: 'comp-1',
     isActive: true,
+    hierarchy: {
+      level: 0,
+      directReports: ['2', '6']
+    },
+    skills: ['Gestão', 'Estratégia', 'Liderança'],
+    bio: 'CEO e fundadora da empresa com mais de 10 anos de experiência em gestão empresarial.'
   },
   { 
     id: '550e8400-e29b-41d4-a716-446655440000', 
@@ -65,6 +71,12 @@ export const mockUsers: User[] = [
     ],
     companyId: '550e8400-e29b-41d4-a716-446655440001',
     isActive: true,
+    hierarchy: {
+      level: 0,
+      directReports: []
+    },
+    skills: ['Demonstração', 'Teste', 'Suporte'],
+    bio: 'Usuário de demonstração para testar todas as funcionalidades da plataforma.'
   },
   { 
     id: '2', 
@@ -84,6 +96,13 @@ export const mockUsers: User[] = [
     ],
     companyId: 'comp-1',
     isActive: true,
+    hierarchy: {
+      level: 1,
+      reportsTo: '1',
+      directReports: ['5']
+    },
+    skills: ['Vendas', 'Negociação', 'CRM'],
+    bio: 'Gerente de vendas experiente com foco em relacionamento com clientes e crescimento de receita.'
   },
   { 
     id: '3', 
@@ -102,6 +121,12 @@ export const mockUsers: User[] = [
     ],
     companyId: 'comp-1',
     isActive: true,
+    hierarchy: {
+      level: 2,
+      reportsTo: '4'
+    },
+    skills: ['UX Design', 'Figma', 'Prototipagem'],
+    bio: 'Designer UX/UI apaixonada por criar experiências digitais intuitivas e acessíveis.'
   },
   { 
     id: '4', 
@@ -120,6 +145,13 @@ export const mockUsers: User[] = [
     ],
     companyId: 'comp-1',
     isActive: true,
+    hierarchy: {
+      level: 2,
+      reportsTo: '6',
+      directReports: ['3']
+    },
+    skills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL'],
+    bio: 'Desenvolvedor full-stack com expertise em tecnologias modernas e arquitetura de software.'
   },
   { 
     id: '5', 
@@ -138,6 +170,12 @@ export const mockUsers: User[] = [
     ],
     companyId: 'comp-1',
     isActive: true,
+    hierarchy: {
+      level: 2,
+      reportsTo: '2'
+    },
+    skills: ['Marketing Digital', 'Analytics', 'SEO'],
+    bio: 'Especialista em marketing digital com foco em growth hacking e análise de dados.'
   },
   { 
     id: '6', 
@@ -157,6 +195,13 @@ export const mockUsers: User[] = [
     ],
     companyId: 'comp-1',
     isActive: true,
+    hierarchy: {
+      level: 1,
+      reportsTo: '1',
+      directReports: ['4']
+    },
+    skills: ['Gestão de Operações', 'Processos', 'Qualidade'],
+    bio: 'Gerente de operações focado em otimização de processos e melhoria contínua.'
   },
 ];
 

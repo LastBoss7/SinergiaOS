@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthState, User, Company } from '../types';
-import { mockUsers, mockCompanies } from '../data/mockData';
+import { mockUsers, mockCompanies, mockProjects, mockTasks } from '../data/mockData';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -10,6 +10,7 @@ interface AuthContextType extends AuthState {
   updateUser: (userData: Partial<User>) => void;
   updateCompany: (companyData: Partial<Company>) => void;
   addUserToCompany: (userData: Partial<User>) => Promise<User | null>;
+  initializeCompanyData: (companyId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const existingUsers = localStorage.getItem('insightos_users');
       const existingCompanies = localStorage.getItem('insightos_companies');
+      const existingProjects = localStorage.getItem('insightos_projects');
+      const existingTasks = localStorage.getItem('insightos_tasks');
       
       if (!existingUsers) {
         localStorage.setItem('insightos_users', JSON.stringify(mockUsers));
@@ -35,6 +38,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!existingCompanies) {
         localStorage.setItem('insightos_companies', JSON.stringify(mockCompanies));
+      }
+      
+      if (!existingProjects) {
+        localStorage.setItem('insightos_projects', JSON.stringify(mockProjects));
+      }
+      
+      if (!existingTasks) {
+        localStorage.setItem('insightos_tasks', JSON.stringify(mockTasks));
       }
     } catch (error) {
       console.error('Error initializing localStorage:', error);
@@ -46,6 +57,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const url = import.meta.env.VITE_SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
     return url && key && url !== 'your-supabase-url' && key !== 'your-supabase-anon-key';
+  };
+
+  // Initialize company data with default projects and structure
+  const initializeCompanyData = (companyId: string) => {
+    try {
+      // Create default projects for new company
+      const defaultProjects = [
+        {
+          id: `${companyId}-proj-1`,
+          name: 'Projeto de Boas-vindas',
+          description: 'Projeto inicial para familiarização com a plataforma',
+          status: 'active',
+          progress: 25,
+          team: [],
+          manager: null,
+          budget: 10000,
+          spent: 2500,
+          createdAt: new Date().toISOString(),
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          companyId: companyId,
+          client: 'Interno',
+          tags: ['setup', 'onboarding']
+        }
+      ];
+
+      // Create default tasks
+      const defaultTasks = [
+        {
+          id: `${companyId}-task-1`,
+          title: 'Configurar perfil da empresa',
+          description: 'Complete as informações da sua empresa nas configurações',
+          status: 'todo',
+          priority: 'high',
+          assignee: null,
+          reporter: null,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          project: 'Projeto de Boas-vindas',
+          tags: ['setup'],
+          timeTracked: 0,
+          estimatedTime: 30,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          companyId: companyId
+        },
+        {
+          id: `${companyId}-task-2`,
+          title: 'Convidar membros da equipe',
+          description: 'Adicione os primeiros membros da sua equipe',
+          status: 'todo',
+          priority: 'medium',
+          assignee: null,
+          reporter: null,
+          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          project: 'Projeto de Boas-vindas',
+          tags: ['team', 'setup'],
+          timeTracked: 0,
+          estimatedTime: 60,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          companyId: companyId
+        }
+      ];
+
+      // Save to localStorage
+      const existingProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
+      const existingTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      
+      // Add default projects if company doesn't have any
+      const companyProjects = existingProjects.filter((p: any) => p.companyId === companyId);
+      if (companyProjects.length === 0) {
+        existingProjects.push(...defaultProjects);
+        localStorage.setItem('insightos_projects', JSON.stringify(existingProjects));
+      }
+      
+      // Add default tasks if company doesn't have any
+      const companyTasks = existingTasks.filter((t: any) => t.companyId === companyId);
+      if (companyTasks.length === 0) {
+        existingTasks.push(...defaultTasks);
+        localStorage.setItem('insightos_tasks', JSON.stringify(existingTasks));
+      }
+    } catch (error) {
+      console.error('Error initializing company data:', error);
+    }
   };
 
   // Load user data with comprehensive fallback
@@ -449,6 +543,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Auto-login after registration
           await loadUserData(userId, userData.user.email);
+          
+          // Initialize company data
+          initializeCompanyData(companyId);
           return;
 
         } catch (supabaseError: any) {
@@ -522,15 +619,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       users.push(user);
       localStorage.setItem('insightos_users', JSON.stringify(users));
       
-      // Save session
+      // Auto-login after registration
+      await loadUserData(userId, userData.user.email);
+      
+      // Initialize company data
+      initializeCompanyData(companyId);
+      
+      // Save session to localStorage
       localStorage.setItem('insightos_session', JSON.stringify({
         userId: userId,
         email: userData.user.email,
         timestamp: new Date().toISOString()
       }));
-      
-      // Auto-login after registration
-      await loadUserData(userId, userData.user.email);
 
     } catch (error: any) {
       setAuthState(prev => ({ 
@@ -795,6 +895,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateUser,
       updateCompany,
       addUserToCompany,
+      initializeCompanyData,
     }}>
       {children}
     </AuthContext.Provider>
