@@ -13,10 +13,10 @@ import TaskModal from '../Tasks/TaskModal';
 import { Task } from '../../types';
 
 const DashboardView: React.FC = () => {
-  const { user, company } = useAuth();
+  const { user, company, getCompanyProjects, getCompanyTasks, getCompanyUsers } = useAuth();
   const [tasks, setTasks] = useState(mockTasks);
-  const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -44,34 +44,15 @@ const DashboardView: React.FC = () => {
       }
 
       try {
-        // Always try to load from localStorage first for better UX
-        const localProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
-        const localTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
-        const localUsers = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-        
-        // Filter by company
-        const companyProjects = localProjects.filter((p: any) => p.companyId === company.id);
-        const companyTasks = localTasks.filter((t: any) => t.companyId === company.id);
-        const companyUsers = localUsers.filter((u: any) => u.companyId === company.id && u.isActive);
+        // Load from localStorage using helper functions
+        const companyProjects = getCompanyProjects();
+        const companyTasks = getCompanyTasks();
+        const companyUsers = getCompanyUsers();
         
         // Set data immediately from localStorage
-        if (companyProjects.length > 0) {
-          setProjects(companyProjects);
-        } else {
-          setProjects(mockProjects);
-        }
-        
-        if (companyTasks.length > 0) {
-          setTasks(companyTasks);
-        } else {
-          setTasks(mockTasks);
-        }
-        
-        if (companyUsers.length > 0) {
-          setUsers(companyUsers);
-        } else {
-          setUsers(mockUsers);
-        }
+        setProjects(companyProjects);
+        setTasks(companyTasks);
+        setUsers(companyUsers);
         
         // Check if company ID is a valid UUID (Supabase format)
         const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(company.id);
@@ -119,25 +100,60 @@ const DashboardView: React.FC = () => {
             setTasks(formattedTasks);
           } else {
             // Fallback to mock data
-            setTasks(mockTasks);
+            const formattedMockTasks = mockTasks.map(task => ({
+              ...task,
+              companyId: company.id,
+              reporter: user
+            }));
+            setTasks(formattedMockTasks);
           }
 
           if (projectsData && projectsData.length > 0) {
             setProjects(projectsData);
           } else {
             // Fallback to mock data
-            setProjects(mockProjects);
+            const formattedMockProjects = mockProjects.map(project => ({
+              ...project,
+              companyId: company.id
+            }));
+            setProjects(formattedMockProjects);
           }
 
           if (usersData && usersData.length > 0) {
             setUsers(usersData);
           } else {
             // Fallback to mock data
-            setUsers(companyUsers.length > 0 ? companyUsers : mockUsers);
+            const formattedMockUsers = mockUsers.map(user => ({
+              ...user,
+              companyId: company.id
+            }));
+            setUsers(companyUsers.length > 0 ? companyUsers : formattedMockUsers);
           }
         } else {
-          // Use localStorage data (already set above)
+          // Use localStorage data or fallback to mock data
           console.info('Using localStorage data for company:', company.id);
+          if (companyProjects.length === 0) {
+            const formattedMockProjects = mockProjects.map(project => ({
+              ...project,
+              companyId: company.id
+            }));
+            setProjects(formattedMockProjects);
+          }
+          if (companyTasks.length === 0) {
+            const formattedMockTasks = mockTasks.map(task => ({
+              ...task,
+              companyId: company.id,
+              reporter: user
+            }));
+            setTasks(formattedMockTasks);
+          }
+          if (companyUsers.length === 0) {
+            const formattedMockUsers = mockUsers.map(mockUser => ({
+              ...mockUser,
+              companyId: company.id
+            }));
+            setUsers(formattedMockUsers);
+          }
         }
       } catch (error) {
         console.info('Error loading data, using localStorage fallback:', error);

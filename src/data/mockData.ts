@@ -380,35 +380,55 @@ export const mockMessages: Message[] = [
     content: 'Pessoal, reunião de planning às 14h para discutir as próximas entregas do sprint', 
     sender: mockUsers[0], 
     timestamp: '2024-01-15T10:30:00Z', 
-    channel: 'geral' 
+    channel: 'geral',
+    type: 'text',
+    edited: false,
+    reactions: [],
+    companyId: 'comp-1'
   },
   { 
     id: '2', 
     content: 'Terminei a revisão da proposta. Preciso de feedback do time comercial até amanhã', 
     sender: mockUsers[1], 
     timestamp: '2024-01-15T11:00:00Z', 
-    channel: 'projetos' 
+    channel: 'projetos',
+    type: 'text',
+    edited: false,
+    reactions: [],
+    companyId: 'comp-1'
   },
   { 
     id: '3', 
     content: 'Testes de usabilidade finalizados com sucesso! 🎉 Relatório completo no drive compartilhado', 
     sender: mockUsers[2], 
     timestamp: '2024-01-15T11:30:00Z', 
-    channel: 'geral' 
+    channel: 'geral',
+    type: 'text',
+    edited: false,
+    reactions: [],
+    companyId: 'comp-1'
   },
   { 
     id: '4', 
     content: 'API documentation está atualizada. Todos os novos endpoints estão documentados', 
     sender: mockUsers[3], 
     timestamp: '2024-01-15T12:15:00Z', 
-    channel: 'desenvolvimento' 
+    channel: 'desenvolvimento',
+    type: 'text',
+    edited: false,
+    reactions: [],
+    companyId: 'comp-1'
   },
   { 
     id: '5', 
     content: 'Setup do ambiente de produção está 80% completo. Deploy previsto para amanhã', 
     sender: mockUsers[5], 
     timestamp: '2024-01-15T13:00:00Z', 
-    channel: 'desenvolvimento' 
+    channel: 'desenvolvimento',
+    type: 'text',
+    edited: false,
+    reactions: [],
+    companyId: 'comp-1'
   }
 ];
 

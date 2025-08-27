@@ -8,7 +8,7 @@ import InviteUserModal from './InviteUserModal';
 import { User } from '../../types';
 
 const TeamView: React.FC = () => {
-  const { user: currentUser, company } = useAuth();
+  const { user: currentUser, company, getCompanyUsers, removeUserFromCompany } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -23,9 +23,18 @@ const TeamView: React.FC = () => {
   // Load users from Supabase
   useEffect(() => {
     const loadUsers = async () => {
-      if (!company?.id) return;
+      if (!company?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
+        // Load from localStorage first for immediate display
+        const localUsers = getCompanyUsers();
+        if (localUsers.length > 0) {
+          setUsers(localUsers);
+        }
+
         const { data, error } = await supabase
           .from('users')
           .select('*')
@@ -54,6 +63,9 @@ const TeamView: React.FC = () => {
         setUsers(formattedUsers);
       } catch (error) {
         console.error('Error loading users:', error);
+        // Fallback to localStorage data
+        const localUsers = getCompanyUsers();
+        setUsers(localUsers);
       } finally {
         setLoading(false);
       }
@@ -107,13 +119,7 @@ const TeamView: React.FC = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ is_active: false })
-        .eq('id', userId);
-
-      if (error) throw error;
-
+      await removeUserFromCompany(userId);
       setUsers(users.filter(user => user.id !== userId));
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -121,39 +127,9 @@ const TeamView: React.FC = () => {
   };
 
   const handleInviteUser = async (userData: any) => {
-    // Refresh users list from Supabase
-    if (!company?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('company_id', company.id)
-        .eq('is_active', true);
-
-      if (error) throw error;
-
-      const formattedUsers: User[] = data.map(user => ({
-        id: user.id,
-        name: user.full_name || user.first_name + ' ' + user.last_name,
-        email: user.email,
-        role: user.role as any,
-        status: user.status as any,
-        department: user.department_id,
-        position: user.position,
-        phone: user.phone,
-        location: user.timezone || 'Brasil',
-        joinDate: user.hire_date || user.created_at,
-        lastLogin: user.last_login_at,
-        permissions: user.permissions || [],
-        companyId: user.company_id,
-        isActive: user.is_active,
-      }));
-
-      setUsers(formattedUsers);
-    } catch (error) {
-      console.error('Error refreshing users:', error);
-    }
+    // Refresh users list
+    const updatedUsers = getCompanyUsers();
+    setUsers(updatedUsers);
   };
 
   const getStatusColor = (status: string) => {

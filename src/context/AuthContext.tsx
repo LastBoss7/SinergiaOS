@@ -1,911 +1,433 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { AuthState, User, Company } from '../types';
-import { mockUsers, mockCompanies, mockProjects, mockTasks } from '../data/mockData';
+import React, { useState } from 'react';
+import { Plus, Hash, Users, Search, Send, Paperclip, Smile, MoreHorizontal, Phone, Video, UserPlus, Settings, Archive, Pin, Star, Reply, Edit, Trash2, Copy, Forward, X } from 'lucide-react';
+import { mockMessages, mockUsers } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
 
-interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
-  logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
-  updateCompany: (companyData: Partial<Company>) => void;
-  addUserToCompany: (userData: Partial<User>) => Promise<User | null>;
-  initializeCompanyData: (companyId: string) => void;
-}
+const MessagesView: React.FC = () => {
+  const { user } = useAuth();
+  const [activeChannel, setActiveChannel] = useState('geral');
+  const [messageInput, setMessageInput] = useState('');
+  const [messages, setMessages] = useState(mockMessages);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [showChannelSettings, setShowChannelSettings] = useState(false);
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+  const channels = [
+    { id: 'geral', name: 'Geral', type: 'public', unread: 3 },
+    { id: 'projetos', name: 'Projetos', type: 'public', unread: 1 },
+    { id: 'marketing', name: 'Marketing', type: 'public', unread: 0 },
+    { id: 'desenvolvimento', name: 'Desenvolvimento', type: 'public', unread: 5 },
+    { id: 'recursos-humanos', name: 'Recursos Humanos', type: 'private', unread: 0 },
+    { id: 'random', name: 'Random', type: 'public', unread: 2 },
+    { id: 'anuncios', name: 'Anúncios', type: 'public', unread: 0 },
+  ];
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    company: null,
-    loading: true,
-    error: null,
-  });
+  const directMessages = [
+    { user: mockUsers[1], unread: 2, lastMessage: 'Vou revisar o documento hoje', time: '10:30' },
+    { user: mockUsers[2], unread: 0, lastMessage: 'Perfeito! Obrigada', time: '09:15' },
+    { user: mockUsers[3], unread: 1, lastMessage: 'Posso te ligar em 10min?', time: '08:45' },
+    { user: mockUsers[4], unread: 0, lastMessage: 'Reunião confirmada para amanhã', time: '08:00' },
+  ];
 
-  // Initialize localStorage with mock data
-  const initializeMockData = () => {
-    try {
-      const existingUsers = localStorage.getItem('insightos_users');
-      const existingCompanies = localStorage.getItem('insightos_companies');
-      const existingProjects = localStorage.getItem('insightos_projects');
-      const existingTasks = localStorage.getItem('insightos_tasks');
-      
-      if (!existingUsers) {
-        localStorage.setItem('insightos_users', JSON.stringify(mockUsers));
-      }
-      
-      if (!existingCompanies) {
-        localStorage.setItem('insightos_companies', JSON.stringify(mockCompanies));
-      }
-      
-      if (!existingProjects) {
-        localStorage.setItem('insightos_projects', JSON.stringify(mockProjects));
-      }
-      
-      if (!existingTasks) {
-        localStorage.setItem('insightos_tasks', JSON.stringify(mockTasks));
-      }
-    } catch (error) {
-      console.error('Error initializing localStorage:', error);
-    }
+  const channelMessages = messages.filter(msg => 
+    selectedUser ? msg.sender.id === selectedUser || msg.sender.id === user?.id : msg.channel === activeChannel
+  );
+
+  const handleChannelSelect = (channelId: string) => {
+    setActiveChannel(channelId);
+    setSelectedUser(null);
   };
 
-  // Check if Supabase is properly configured
-  const isSupabaseConfigured = () => {
-    const url = import.meta.env.VITE_SUPABASE_URL;
-    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    return url && key && url !== 'your-supabase-url' && key !== 'your-supabase-anon-key';
+  const handleDirectMessageSelect = (userId: string) => {
+    setSelectedUser(userId);
+    setActiveChannel('');
   };
 
-  // Initialize company data with default projects and structure
-  const initializeCompanyData = (companyId: string) => {
-    try {
-      // Create default projects for new company
-      const defaultProjects = [
-        {
-          id: `${companyId}-proj-1`,
-          name: 'Projeto de Boas-vindas',
-          description: 'Projeto inicial para familiarização com a plataforma',
-          status: 'active',
-          progress: 25,
-          team: [],
-          manager: null,
-          budget: 10000,
-          spent: 2500,
-          createdAt: new Date().toISOString(),
-          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          companyId: companyId,
-          client: 'Interno',
-          tags: ['setup', 'onboarding']
-        }
-      ];
-
-      // Create default tasks
-      const defaultTasks = [
-        {
-          id: `${companyId}-task-1`,
-          title: 'Configurar perfil da empresa',
-          description: 'Complete as informações da sua empresa nas configurações',
-          status: 'todo',
-          priority: 'high',
-          assignee: null,
-          reporter: null,
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          project: 'Projeto de Boas-vindas',
-          tags: ['setup'],
-          timeTracked: 0,
-          estimatedTime: 30,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          companyId: companyId
-        },
-        {
-          id: `${companyId}-task-2`,
-          title: 'Convidar membros da equipe',
-          description: 'Adicione os primeiros membros da sua equipe',
-          status: 'todo',
-          priority: 'medium',
-          assignee: null,
-          reporter: null,
-          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          project: 'Projeto de Boas-vindas',
-          tags: ['team', 'setup'],
-          timeTracked: 0,
-          estimatedTime: 60,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          companyId: companyId
-        }
-      ];
-
-      // Save to localStorage
-      const existingProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
-      const existingTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
-      
-      // Add default projects if company doesn't have any
-      const companyProjects = existingProjects.filter((p: any) => p.companyId === companyId);
-      if (companyProjects.length === 0) {
-        existingProjects.push(...defaultProjects);
-        localStorage.setItem('insightos_projects', JSON.stringify(existingProjects));
-      }
-      
-      // Add default tasks if company doesn't have any
-      const companyTasks = existingTasks.filter((t: any) => t.companyId === companyId);
-      if (companyTasks.length === 0) {
-        existingTasks.push(...defaultTasks);
-        localStorage.setItem('insightos_tasks', JSON.stringify(existingTasks));
-      }
-    } catch (error) {
-      console.error('Error initializing company data:', error);
+  const getCurrentChannelName = () => {
+    if (selectedUser) {
+      const selectedUserData = mockUsers.find(u => u.id === selectedUser);
+      return selectedUserData?.name || 'Usuário';
     }
+    const channel = channels.find(c => c.id === activeChannel);
+    return channel?.name || 'Canal';
   };
 
-  // Load user data with comprehensive fallback
-  const loadUserData = async (userId: string, email?: string) => {
-    try {
-      // Skip Supabase for demo users - go directly to localStorage
-      if (userId === '550e8400-e29b-41d4-a716-446655440000' || email === 'demo@insightos.com' || email === 'demo@sinergia.com') {
-        // Use localStorage directly for demo users
-        const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-        const companies = JSON.parse(localStorage.getItem('insightos_companies') || '[]');
-        
-        let userData = users.find((u: any) => u.id === userId);
-        if (!userData && email) {
-          userData = users.find((u: any) => u.email === email && u.isActive);
-        }
-        
-        if (!userData) {
-          throw new Error('Usuário demo não encontrado');
-        }
-        
-        const companyData = companies.find((c: any) => c.id === userData.companyId);
-        if (!companyData) {
-          throw new Error('Empresa demo não encontrada');
-        }
-        
-        // Update user status in localStorage
-        userData.status = 'online';
-        userData.lastLogin = new Date().toISOString();
-        const userIndex = users.findIndex((u: any) => u.id === userData.id);
-        if (userIndex !== -1) {
-          users[userIndex] = userData;
-          localStorage.setItem('insightos_users', JSON.stringify(users));
-        }
-        
-        setAuthState({
-          isAuthenticated: true,
-          user: userData,
-          company: companyData,
-          loading: false,
-          error: null,
-        });
-        return;
-      }
-
-      // First try Supabase if configured
-      if (isSupabaseConfigured()) {
-        try {
-          // Get user data from Supabase
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('*, companies(*)')
-            .eq('id', userId)
-            .eq('is_active', true)
-            .single();
-
-          if (!userError && userData) {
-            // Update user status to online
-            await supabase
-              .from('users')
-              .update({ 
-                status: 'online',
-                last_login_at: new Date().toISOString()
-              })
-              .eq('id', userId);
-
-            const user: User = {
-              id: userData.id,
-              name: userData.full_name || userData.first_name + ' ' + userData.last_name,
-              email: userData.email,
-              role: userData.role as any,
-              status: 'online' as any,
-              department: userData.department_id,
-              position: userData.position,
-              phone: userData.phone,
-              location: userData.timezone || 'Brasil',
-              joinDate: userData.hire_date || userData.created_at,
-              lastLogin: new Date().toISOString(),
-              permissions: userData.permissions || [],
-              companyId: userData.company_id,
-              isActive: userData.is_active,
-            };
-
-            const company: Company = {
-              id: userData.companies.id,
-              name: userData.companies.name,
-              email: userData.companies.email,
-              plan: userData.companies.plan as any,
-              industry: userData.companies.industry,
-              size: userData.companies.company_size,
-              address: userData.companies.address_line1,
-              phone: userData.companies.phone,
-              website: userData.companies.website,
-              createdAt: userData.companies.created_at,
-              settings: userData.companies.settings || {
-                timezone: 'America/Sao_Paulo',
-                currency: 'BRL',
-                language: 'pt-BR',
-                workingHours: {
-                  start: '09:00',
-                  end: '18:00',
-                  workingDays: [1, 2, 3, 4, 5],
-                },
-                notifications: {
-                  email: true,
-                  push: true,
-                  slack: false,
-                },
-              },
-              modules: userData.companies.active_modules || ['core'],
-            };
-
-            setAuthState({
-              isAuthenticated: true,
-              user,
-              company,
-              loading: false,
-              error: null,
-            });
-            return;
-          }
-        } catch (supabaseError: any) {
-          console.info('Supabase user lookup failed, falling back to localStorage:', supabaseError.message);
-        }
-      }
-
-      // Fallback to localStorage
-      const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-      const companies = JSON.parse(localStorage.getItem('insightos_companies') || '[]');
-      
-      // Find user by ID or email
-      let userData = users.find((u: any) => u.id === userId);
-      if (!userData && email) {
-        userData = users.find((u: any) => u.email === email && u.isActive);
-      }
-      
-      if (!userData) {
-        throw new Error('Usuário não encontrado');
-      }
-      
-      const companyData = companies.find((c: any) => c.id === userData.companyId);
-      if (!companyData) {
-        throw new Error('Empresa não encontrada');
-      }
-      
-      // Update user status in localStorage
-      userData.status = 'online';
-      userData.lastLogin = new Date().toISOString();
-      const userIndex = users.findIndex((u: any) => u.id === userData.id);
-      if (userIndex !== -1) {
-        users[userIndex] = userData;
-        localStorage.setItem('insightos_users', JSON.stringify(users));
-      }
-      
-      setAuthState({
-        isAuthenticated: true,
-        user: userData,
-        company: companyData,
-        loading: false,
-        error: null,
-      });
-
-    } catch (error: any) {
-      console.error('Error loading user data:', error);
-      setAuthState(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: error.message || 'Erro ao carregar dados do usuário' 
-      }));
-    }
-  };
-
-  useEffect(() => {
-    // Initialize mock data first
-    initializeMockData();
-
-    // Check initial session
-    const checkSession = async () => {
-      try {
-        if (isSupabaseConfigured()) {
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session?.user) {
-            await loadUserData(session.user.id, session.user.email);
-            return;
-          }
-        }
-        
-        // Check localStorage for existing session
-        const savedSession = localStorage.getItem('insightos_session');
-        if (savedSession) {
-          const sessionData = JSON.parse(savedSession);
-          await loadUserData(sessionData.userId, sessionData.email);
-          return;
-        }
-        
-        setAuthState(prev => ({ ...prev, loading: false }));
-      } catch (error) {
-        console.error('Error checking session:', error);
-        setAuthState(prev => ({ ...prev, loading: false }));
-      }
-    };
-
-    checkSession();
-
-    // Listen for auth changes only if Supabase is configured
-    if (isSupabaseConfigured()) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          await loadUserData(session.user.id, session.user.email);
-        } else if (event === 'SIGNED_OUT') {
-          localStorage.removeItem('insightos_session');
-          setAuthState({
-            isAuthenticated: false,
-            user: null,
-            company: null,
-            loading: false,
-            error: null,
-          });
-        }
-      });
-
-      return () => subscription.unsubscribe();
-    }
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      // Handle demo login first
-      if ((email === 'demo@insightos.com' || email === 'demo@sinergia.com') && password === 'demo') {
-        await loadUserData('550e8400-e29b-41d4-a716-446655440000', email);
-        // Save session to localStorage
-        localStorage.setItem('insightos_session', JSON.stringify({
-          userId: '550e8400-e29b-41d4-a716-446655440000',
-          email: email,
-          timestamp: new Date().toISOString()
-        }));
-        return;
-      }
-
-      // Try Supabase authentication if configured
-      if (isSupabaseConfigured()) {
-        try {
-          // First check if user exists and is active
-          const { data: existingUser, error: checkError } = await supabase
-            .from('users')
-            .select('id, is_active, email')
-            .eq('email', email)
-            .eq('is_active', true)
-            .maybeSingle();
-
-          if (checkError) {
-            console.info('Supabase user check failed:', checkError.message);
-            throw new Error('Erro ao verificar usuário');
-          }
-
-          if (!existingUser) {
-            throw new Error('Usuário não encontrado ou inativo');
-          }
-
-          // Try to sign in with Supabase Auth
-          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (authError) {
-            console.info('Supabase auth failed:', authError.message);
-            throw new Error('Credenciais inválidas');
-          }
-
-          if (authData.user) {
-            await loadUserData(authData.user.id, email);
-            return;
-          }
-        } catch (supabaseError: any) {
-          console.info('Supabase login failed, trying localStorage fallback:', supabaseError.message);
-        }
-      }
-
-      // Fallback to localStorage authentication
-      const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-      const userData = users.find((u: any) => u.email === email && u.isActive);
-      
-      if (!userData) {
-        throw new Error('Usuário não encontrado ou inativo');
-      }
-
-      // Simple password validation for demo (in production, use proper hashing)
-      if (password !== 'demo' && password !== '123456') {
-        throw new Error('Senha incorreta');
-      }
-
-      await loadUserData(userData.id, email);
-      
-      // Save session to localStorage
-      localStorage.setItem('insightos_session', JSON.stringify({
-        userId: userData.id,
-        email: email,
-        timestamp: new Date().toISOString()
-      }));
-
-    } catch (error: any) {
-      setAuthState(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: error.message || 'Erro ao fazer login' 
-      }));
-    }
-  };
-
-  const register = async (userData: any) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      // Generate proper UUIDs
-      const companyId = crypto.randomUUID();
-      const userId = crypto.randomUUID();
-
-      // Try Supabase first if configured
-      if (isSupabaseConfigured()) {
-        try {
-          // Create company
-          const { data: companyData, error: companyError } = await supabase
-            .from('companies')
-            .insert({
-              id: companyId,
-              name: userData.company.companyName,
-              email: userData.user.email,
-              plan: 'free',
-              industry: userData.company.industry,
-              company_size: userData.company.size,
-              address_line1: userData.company.address || '',
-              phone: userData.company.phone || '',
-              website: userData.company.website || '',
-              country: 'Brasil',
-              settings: {
-                timezone: 'America/Sao_Paulo',
-                currency: 'BRL',
-                language: 'pt-BR',
-                workingHours: {
-                  start: '09:00',
-                  end: '18:00',
-                  workingDays: [1, 2, 3, 4, 5],
-                },
-                notifications: {
-                  email: true,
-                  push: true,
-                  slack: false,
-                },
-              },
-              active_modules: ['core'],
-            })
-            .select()
-            .single();
-
-          if (companyError) throw companyError;
-
-          // Create admin user
-          const { data: newUserData, error: userError } = await supabase
-            .from('users')
-            .insert({
-              id: userId,
-              company_id: companyId,
-              email: userData.user.email,
-              first_name: userData.user.name.split(' ')[0],
-              last_name: userData.user.name.split(' ').slice(1).join(' ') || '',
-              full_name: userData.user.name,
-              role: 'admin',
-              status: 'online',
-              position: userData.user.position || 'CEO',
-              phone: userData.user.phone || '',
-              timezone: 'America/Sao_Paulo',
-              language: 'pt-BR',
-              permissions: {
-                modules: ['all'],
-                actions: ['read', 'write', 'delete', 'admin']
-              },
-              is_active: true,
-            })
-            .select()
-            .single();
-
-          if (userError) throw userError;
-
-          // Create Supabase Auth user
-          const { data: authUser, error: authError } = await supabase.auth.signUp({
-            email: userData.user.email,
-            password: userData.user.password,
-            options: {
-              data: {
-                full_name: userData.user.name,
-                company_id: companyId,
-                user_id: userId
-              }
-            }
-          });
-
-          if (authError) throw authError;
-
-          // Auto-login after registration
-          await loadUserData(userId, userData.user.email);
-          
-          // Initialize company data
-          initializeCompanyData(companyId);
-          return;
-
-        } catch (supabaseError: any) {
-          console.info('Supabase registration failed, using localStorage:', supabaseError.message);
-        }
-      }
-
-      // Fallback to localStorage
-      const companies = JSON.parse(localStorage.getItem('insightos_companies') || '[]');
-      const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-      
-      // Check if email already exists
-      const existingUser = users.find((u: any) => u.email === userData.user.email);
-      if (existingUser) {
-        throw new Error('Email já está em uso');
-      }
-
-      // Create company
-      const company: Company = {
-        id: companyId,
-        name: userData.company.companyName,
-        email: userData.user.email,
-        plan: 'free',
-        industry: userData.company.industry,
-        size: userData.company.size,
-        address: userData.company.address || '',
-        phone: userData.company.phone || '',
-        website: userData.company.website || '',
-        createdAt: new Date().toISOString(),
-        settings: {
-          timezone: 'America/Sao_Paulo',
-          currency: 'BRL',
-          language: 'pt-BR',
-          workingHours: {
-            start: '09:00',
-            end: '18:00',
-            workingDays: [1, 2, 3, 4, 5],
-          },
-          notifications: {
-            email: true,
-            push: true,
-            slack: false,
-          },
-        },
-        modules: ['core'],
+  const handleSendMessage = () => {
+    if (messageInput.trim()) {
+      const newMessage = {
+        id: `msg-${Date.now()}`,
+        content: messageInput,
+        sender: user!,
+        timestamp: new Date().toISOString(),
+        channel: selectedUser ? 'direct' : activeChannel,
+        type: 'text' as const,
+        edited: false,
+        reactions: [],
+        companyId: user?.companyId || ''
       };
       
-      companies.push(company);
-      localStorage.setItem('insightos_companies', JSON.stringify(companies));
-      
-      // Create admin user
-      const user: User = {
-        id: userId,
-        name: userData.user.name,
-        email: userData.user.email,
-        role: 'admin',
-        status: 'online',
-        department: 'Administração',
-        position: userData.user.position || 'CEO',
-        phone: userData.user.phone || '',
-        location: userData.company.address || 'Brasil',
-        joinDate: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        permissions: [
-          { module: 'all', actions: ['read', 'write', 'delete', 'admin'] }
-        ],
-        companyId: companyId,
-        isActive: true,
-      };
-      
-      users.push(user);
-      localStorage.setItem('insightos_users', JSON.stringify(users));
-      
-      // Auto-login after registration
-      await loadUserData(userId, userData.user.email);
-      
-      // Initialize company data
-      initializeCompanyData(companyId);
-      
-      // Save session to localStorage
-      localStorage.setItem('insightos_session', JSON.stringify({
-        userId: userId,
-        email: userData.user.email,
-        timestamp: new Date().toISOString()
-      }));
-
-    } catch (error: any) {
-      setAuthState(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: error.message || 'Erro ao criar conta' 
-      }));
+      setMessages([...messages, newMessage]);
+      setMessageInput('');
     }
   };
 
-  const logout = async () => {
-    try {
-      // Update user status to offline if possible
-      if (authState.user && isSupabaseConfigured()) {
-        try {
-          await supabase
-            .from('users')
-            .update({ status: 'offline' })
-            .eq('id', authState.user.id);
-        } catch (error) {
-          console.info('Could not update user status in Supabase:', error);
-        }
-      }
-
-      // Update localStorage
-      if (authState.user) {
-        const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-        const userIndex = users.findIndex((u: any) => u.id === authState.user!.id);
-        if (userIndex !== -1) {
-          users[userIndex].status = 'offline';
-          localStorage.setItem('insightos_users', JSON.stringify(users));
-        }
-      }
-
-      // Sign out from Supabase if configured
-      if (isSupabaseConfigured()) {
-        await supabase.auth.signOut();
-      }
-
-      // Clear session
-      localStorage.removeItem('insightos_session');
-      
-      setAuthState({
-        isAuthenticated: false,
-        user: null,
-        company: null,
-        loading: false,
-        error: null,
-      });
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Force logout even if there's an error
-      localStorage.removeItem('insightos_session');
-      setAuthState({
-        isAuthenticated: false,
-        user: null,
-        company: null,
-        loading: false,
-        error: null,
-      });
-    }
-  };
-
-  const updateUser = async (userData: Partial<User>) => {
-    if (!authState.user) return;
-
-    try {
-      // Try Supabase first if configured
-      if (isSupabaseConfigured()) {
-        try {
-          const { error } = await supabase
-            .from('users')
-            .update({
-              full_name: userData.name,
-              first_name: userData.name?.split(' ')[0],
-              last_name: userData.name?.split(' ').slice(1).join(' '),
-              email: userData.email,
-              role: userData.role,
-              position: userData.position,
-              phone: userData.phone,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', authState.user.id);
-
-          if (!error) {
-            const updatedUser = { ...authState.user, ...userData };
-            setAuthState(prev => ({ ...prev, user: updatedUser }));
-            return;
-          }
-        } catch (supabaseError) {
-          console.info('Supabase user update failed, using localStorage:', supabaseError);
-        }
-      }
-
-      // Fallback to localStorage
-      const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-      const userIndex = users.findIndex((u: any) => u.id === authState.user!.id);
-      
-      if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], ...userData };
-        localStorage.setItem('insightos_users', JSON.stringify(users));
-        
-        const updatedUser = { ...authState.user, ...userData };
-        setAuthState(prev => ({ ...prev, user: updatedUser }));
-      }
-    } catch (error) {
-      console.error('Error updating user:', error);
-    }
-  };
-
-  const updateCompany = async (companyData: Partial<Company>) => {
-    if (!authState.company) return;
-
-    try {
-      // Try Supabase first if configured
-      if (isSupabaseConfigured()) {
-        try {
-          const { error } = await supabase
-            .from('companies')
-            .update({
-              name: companyData.name,
-              email: companyData.email,
-              industry: companyData.industry,
-              company_size: companyData.size,
-              address_line1: companyData.address,
-              phone: companyData.phone,
-              website: companyData.website,
-              settings: companyData.settings,
-              active_modules: companyData.modules,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', authState.company.id);
-
-          if (!error) {
-            const updatedCompany = { ...authState.company, ...companyData };
-            setAuthState(prev => ({ ...prev, company: updatedCompany }));
-            return;
-          }
-        } catch (supabaseError) {
-          console.info('Supabase company update failed, using localStorage:', supabaseError);
-        }
-      }
-
-      // Fallback to localStorage
-      const companies = JSON.parse(localStorage.getItem('insightos_companies') || '[]');
-      const companyIndex = companies.findIndex((c: any) => c.id === authState.company!.id);
-      
-      if (companyIndex !== -1) {
-        companies[companyIndex] = { ...companies[companyIndex], ...companyData };
-        localStorage.setItem('insightos_companies', JSON.stringify(companies));
-        
-        const updatedCompany = { ...authState.company, ...companyData };
-        setAuthState(prev => ({ ...prev, company: updatedCompany }));
-      }
-    } catch (error) {
-      console.error('Error updating company:', error);
-    }
-  };
-
-  const addUserToCompany = async (userData: Partial<User>): Promise<User | null> => {
-    if (!authState.company) return null;
-
-    try {
-      const newUserId = crypto.randomUUID();
-
-      // Try Supabase first if configured
-      if (isSupabaseConfigured()) {
-        try {
-          const { data: newUserData, error } = await supabase
-            .from('users')
-            .insert({
-              id: newUserId,
-              company_id: authState.company.id,
-              email: userData.email || '',
-              first_name: userData.name?.split(' ')[0] || '',
-              last_name: userData.name?.split(' ').slice(1).join(' ') || '',
-              full_name: userData.name || '',
-              role: userData.role || 'member',
-              status: 'offline',
-              position: userData.position || '',
-              phone: userData.phone || '',
-              timezone: 'America/Sao_Paulo',
-              language: 'pt-BR',
-              permissions: userData.permissions || {
-                modules: ['core'],
-                actions: ['read', 'write']
-              },
-              is_active: true,
-            })
-            .select()
-            .single();
-
-          if (!error && newUserData) {
-            const user: User = {
-              id: newUserData.id,
-              name: newUserData.full_name,
-              email: newUserData.email,
-              role: newUserData.role as any,
-              status: newUserData.status as any,
-              department: userData.department,
-              position: newUserData.position,
-              phone: newUserData.phone,
-              location: userData.location,
-              joinDate: newUserData.created_at,
-              lastLogin: newUserData.last_login_at,
-              permissions: newUserData.permissions || [],
-              companyId: newUserData.company_id,
-              isActive: newUserData.is_active,
-            };
-
-            return user;
-          }
-        } catch (supabaseError) {
-          console.info('Supabase user creation failed, using localStorage:', supabaseError);
-        }
-      }
-
-      // Fallback to localStorage
-      const users = JSON.parse(localStorage.getItem('insightos_users') || '[]');
-      
-      // Check if email already exists
-      const existingUser = users.find((u: any) => u.email === userData.email);
-      if (existingUser) {
-        throw new Error('Email já está em uso');
-      }
-
-      const user: User = {
-        id: newUserId,
-        name: userData.name || '',
-        email: userData.email || '',
-        role: userData.role || 'member',
-        status: 'offline',
-        department: userData.department || '',
-        position: userData.position || '',
-        phone: userData.phone || '',
-        location: userData.location || '',
-        joinDate: new Date().toISOString(),
-        lastLogin: null,
-        permissions: userData.permissions || [
-          { module: 'core', actions: ['read', 'write'] }
-        ],
-        companyId: authState.company.id,
-        isActive: true,
-      };
-      
-      users.push(user);
-      localStorage.setItem('insightos_users', JSON.stringify(users));
-      
-      return user;
-    } catch (error) {
-      console.error('Error adding user to company:', error);
-      return null;
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
   return (
-    <AuthContext.Provider value={{
-      ...authState,
-      login,
-      register,
-      logout,
-      updateUser,
-      updateCompany,
-      addUserToCompany,
-      initializeCompanyData,
-    }}>
-      {children}
-    </AuthContext.Provider>
+    <div className="h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] flex">
+      {/* Sidebar de Canais */}
+      <div className="w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden lg:flex">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Mensagens</h1>
+            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+              <Plus className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar conversas..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {/* Canais */}
+          <div className="p-4">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+              Canais
+            </h3>
+            <div className="space-y-1">
+              {channels.map((channel) => (
+                <button
+                  key={channel.id}
+                  onClick={() => handleChannelSelect(channel.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                    activeChannel === channel.id && !selectedUser
+                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Hash className="w-4 h-4" />
+                    <span className="text-sm font-medium">{channel.name}</span>
+                  </div>
+                  {channel.unread > 0 && (
+                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                      {channel.unread}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mensagens Diretas */}
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+              Mensagens Diretas
+            </h3>
+            <div className="space-y-2">
+              {directMessages.map((dm) => (
+                <button
+                  key={dm.user.id}
+                  onClick={() => handleDirectMessageSelect(dm.user.id)}
+                  className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <div className="relative">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                      {dm.user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 ${
+                      dm.user.status === 'online' ? 'bg-emerald-400' :
+                      dm.user.status === 'away' ? 'bg-amber-400' : 'bg-slate-400'
+                    } rounded-full border-2 border-white dark:border-slate-900`}></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                        {dm.user.name}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{dm.time}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{dm.lastMessage}</p>
+                  </div>
+                  {dm.unread > 0 && (
+                    <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                      {dm.unread}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Channel List */}
+      <div className="lg:hidden w-full bg-white dark:bg-slate-800 rounded-xl p-4 mb-6 border border-slate-200 dark:border-slate-700">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Canais</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {channels.map((channel) => (
+            <button
+              key={channel.id}
+              onClick={() => setActiveChannel(channel.id)}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                activeChannel === channel.id
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Hash className="w-4 h-4" />
+                <span className="text-sm font-medium">{channel.name}</span>
+              </div>
+              {channel.unread > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                  {channel.unread}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        
+        <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-6 mb-3">
+          Mensagens Diretas
+        </h3>
+        <div className="space-y-2">
+          {directMessages.map((dm) => (
+            <div key={dm.user.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                {dm.user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </div>
+              <span className="text-sm text-slate-900 dark:text-white">{dm.user.name}</span>
+              {dm.unread > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[16px] text-center">
+                  {dm.unread}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Área Principal de Chat */}
+      <div className="flex-1 flex flex-col bg-white dark:bg-slate-800">
+        {/* Header do Chat */}
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Hash className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <div>
+                <h2 className="font-semibold text-slate-900 dark:text-white">
+                  {getCurrentChannelName()}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {selectedUser ? 'Conversa direta' : `${mockUsers.filter(u => u.status === 'online').length} membros online`}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              {selectedUser ? (
+                <>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <Video className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <UserPlus className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <Users className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                  <button 
+                    onClick={() => setShowChannelSettings(!showChannelSettings)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mensagens */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
+          {channelMessages.map((message) => (
+            <div key={message.id} className="flex items-start space-x-3 group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-lg transition-colors">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                {message.sender.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {message.sender.name}
+                  </span>
+                  {message.sender.role === 'admin' && (
+                    <span className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs rounded-full">
+                      Admin
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {new Date(message.timestamp).toLocaleTimeString('pt-BR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {message.content}
+                </p>
+                {message.edited && (
+                  <span className="text-xs text-slate-500 dark:text-slate-500 italic">
+                    (editado)
+                  </span>
+                )}
+              </div>
+              <div className="opacity-0 group-hover:opacity-100 flex items-center space-x-1 transition-opacity">
+                <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                  <Reply className="w-3 h-3 text-slate-500" />
+                </button>
+                <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                  <Star className="w-3 h-3 text-slate-500" />
+                </button>
+                {message.sender.id === user?.id && (
+                  <>
+                    <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                      <Edit className="w-3 h-3 text-slate-500" />
+                    </button>
+                    <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* IA Assistant Message */}
+          <div className="flex items-start space-x-3 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
+              <span className="text-sm font-bold">IA</span>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="font-semibold text-blue-800 dark:text-blue-200">Assistente IA</span>
+                <span className="text-xs text-blue-600 dark:text-blue-400">agora</span>
+              </div>
+              <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                📊 <strong>Insight Automático:</strong> Detectei que a produtividade da equipe aumentou 23% esta semana. 
+                O projeto "Lançamento Beta\" está 15% adiantado no cronograma. Recomendo aproveitar esse momentum 
+                para antecipar algumas entregas do próximo sprint.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Input de Mensagem */}
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center space-x-3">
+            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+              <Paperclip className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={selectedUser ? `Mensagem para ${mockUsers.find(u => u.id === selectedUser)?.name}` : `Mensagem para #${getCurrentChannelName()}`}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+              <Smile className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+            <button
+              onClick={handleSendMessage}
+              disabled={!messageInput.trim()}
+              className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {/* Typing indicator */}
+          <div className="px-4 py-2">
+            <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-500">
+              <div className="flex space-x-1">
+                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce"></div>
+                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+              <span>João Costa está digitando...</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Channel Settings Panel */}
+        {showChannelSettings && !selectedUser && (
+          <div className="w-64 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Configurações do Canal</h3>
+              <button 
+                onClick={() => setShowChannelSettings(false)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                <Pin className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Fixar Canal</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                <UserPlus className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Adicionar Membros</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                <Archive className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Arquivar Canal</span>
+              </button>
+            </div>
+            
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-3">Membros do Canal</h4>
+              <div className="space-y-2">
+                {mockUsers.slice(0, 4).map((member) => (
+                  <div key={member.id} className="flex items-center space-x-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs">
+                      {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{member.name}</span>
+                    <div className={`w-2 h-2 rounded-full ${
+                      member.status === 'online' ? 'bg-emerald-400' :
+                      member.status === 'away' ? 'bg-amber-400' : 'bg-slate-400'
+                    }`}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};
+export default MessagesView;

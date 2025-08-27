@@ -8,7 +8,7 @@ import TaskModal from '../Tasks/TaskModal';
 import { Project, Task } from '../../types';
 
 const ProjectsView: React.FC = () => {
-  const { company } = useAuth();
+  const { company, getCompanyProjects, getCompanyTasks } = useAuth();
   const [activeTab, setActiveTab] = useState<'board' | 'list'>('board');
   const [selectedProject, setSelectedProject] = useState('all');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -35,18 +35,16 @@ const ProjectsView: React.FC = () => {
       }
 
       try {
-        // Load from localStorage first
-        const localProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
-        const localTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
-        
-        // Filter by company
-        const companyProjects = localProjects.filter((p: any) => p.companyId === company.id);
-        const companyTasks = localTasks.filter((t: any) => t.companyId === company.id);
+        // Load from localStorage first for immediate display
+        const companyProjects = getCompanyProjects();
+        const companyTasks = getCompanyTasks();
         
         // Set data from localStorage
-        setProjects(companyProjects.length > 0 ? companyProjects : mockProjects);
-        setTasks(companyTasks.length > 0 ? companyTasks : mockTasks);
+        setProjects(companyProjects.length > 0 ? companyProjects : []);
+        setTasks(companyTasks.length > 0 ? companyTasks : []);
         
+        // Try Supabase if configured
+        if (import.meta.env.VITE_SUPABASE_URL && company.id.includes('-')) {
         // Load projects
         const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
@@ -56,7 +54,26 @@ const ProjectsView: React.FC = () => {
           `)
           .eq('company_id', company.id);
 
-        if (projectsError) throw projectsError;
+          if (!projectsError && projectsData && projectsData.length > 0) {
+            // Format projects data
+            const formattedProjects: Project[] = projectsData.map(project => ({
+              id: project.id,
+              name: project.name,
+              description: project.description || '',
+              status: project.status as any,
+              progress: project.progress,
+              team: [], // Will be populated from team_members array
+              manager: project.manager as any,
+              budget: project.budget,
+              spent: project.spent,
+              createdAt: project.created_at,
+              dueDate: project.due_date,
+              companyId: project.company_id,
+              client: project.client,
+              tags: project.tags || [],
+            }));
+            setProjects(formattedProjects);
+          }
 
         // Load tasks
         const { data: tasksData, error: tasksError } = await supabase
@@ -69,55 +86,31 @@ const ProjectsView: React.FC = () => {
           `)
           .eq('company_id', company.id);
 
-        if (tasksError) throw tasksError;
-
-        // Format projects data
-        const formattedProjects: Project[] = projectsData.map(project => ({
-          id: project.id,
-          name: project.name,
-          description: project.description || '',
-          status: project.status as any,
-          progress: project.progress,
-          team: [], // Will be populated from team_members array
-          manager: project.manager as any,
-          budget: project.budget,
-          spent: project.spent,
-          createdAt: project.created_at,
-          dueDate: project.due_date,
-          companyId: project.company_id,
-          client: project.client,
-          tags: project.tags || [],
-        }));
-
-        // Format tasks data
-        const formattedTasks: Task[] = tasksData.map(task => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          status: task.status as any,
-          priority: task.priority as any,
-          assignee: task.assignee as any,
-          reporter: task.reporter as any,
-          dueDate: task.due_date,
-          project: task.project?.name || '',
-          tags: task.tags || [],
-          timeTracked: task.time_tracked,
-          estimatedTime: task.estimated_time,
-          createdAt: task.created_at,
-          updatedAt: task.updated_at,
-          companyId: task.company_id,
-        }));
-
-          companyId: company?.id || '',
-        setTasks(formattedTasks);
+          if (!tasksError && tasksData && tasksData.length > 0) {
+            // Format tasks data
+            const formattedTasks: Task[] = tasksData.map(task => ({
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              status: task.status as any,
+              priority: task.priority as any,
+              assignee: task.assignee as any,
+              reporter: task.reporter as any,
+              dueDate: task.due_date,
+              project: task.project?.name || '',
+              tags: task.tags || [],
+              timeTracked: task.time_tracked,
+              estimatedTime: task.estimated_time,
+              createdAt: task.created_at,
+              updatedAt: task.updated_at,
+              companyId: task.company_id,
+            }));
+            setTasks(formattedTasks);
+          }
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
-        
-        // Update localStorage
-        const allProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
-        allProjects.push(newProject);
-        localStorage.setItem('insightos_projects', JSON.stringify(allProjects));
         setLoading(false);
       }
     };
@@ -161,11 +154,25 @@ const ProjectsView: React.FC = () => {
   const handleSaveProject = (projectData: Partial<Project>) => {
     if (selectedProjectForEdit) {
       // Edit existing project
-      setProjects(projects.map(p => 
+      const updatedProjects = projects.map(p => 
         p.id === selectedProjectForEdit.id 
           ? { ...p, ...projectData }
-          : p
-      ));
+          : p);
+      setProjects(updatedProjects);
+      
+      // Update localStorage
+      const updatedTasks = tasks.map(t => 
+      const updatedAllProjects = allProjects.map((p: any) => 
+        p.id === selectedProjectForEdit.id ? { ...p, ...projectData } : p
+          : t);
+      setTasks(updatedTasks);
+      
+      // Update localStorage
+      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      const updatedAllTasks = allTasks.map((t: any) => 
+        t.id === selectedTaskForEdit.id ? { ...t, ...taskData } : t
+      );
+      localStorage.setItem('insightos_tasks', JSON.stringify(updatedAllTasks));
     } else {
       // Create new project
       const newProject: Project = {
@@ -181,37 +188,48 @@ const ProjectsView: React.FC = () => {
         createdAt: new Date().toISOString(),
         dueDate: projectData.dueDate,
         companyId: projectData.companyId || '',
+        companyId: company?.id || '',
         client: projectData.client,
         tags: projectData.tags || [],
       };
       setProjects([...projects, newProject]);
+      
+      // Update localStorage
+      const allProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
+      allProjects.push(newProject);
+      localStorage.setItem('insightos_projects', JSON.stringify(allProjects));
     }
     setSelectedProjectForEdit(null);
   };
 
   const handleDeleteProject = (projectId: string) => {
     setProjects(projects.filter(p => p.id !== projectId));
+    
+    // Update localStorage
+    const allProjects = JSON.parse(localStorage.getItem('insightos_projects') || '[]');
+    const filteredProjects = allProjects.filter((p: any) => p.id !== projectId);
+    localStorage.setItem('insightos_projects', JSON.stringify(filteredProjects));
+    
     // Also remove tasks from deleted project
-    setTasks(tasks.filter(t => t.project !== projects.find(p => p.id === projectId)?.name));
+    const projectName = projects.find(p => p.id === projectId)?.name;
+    if (projectName) {
+      const updatedTasks = tasks.filter(t => t.project !== projectName);
+      setTasks(updatedTasks);
+      
+      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      const filteredTasks = allTasks.filter((t: any) => t.project !== projectName);
+      localStorage.setItem('insightos_tasks', JSON.stringify(filteredTasks));
+    }
   };
 
-  const handleSaveTask = (taskData: Partial<Task>) => {
-    if (selectedTaskForEdit) {
-      // Edit existing task
-      setTasks(tasks.map(t => 
-        t.id === selectedTaskForEdit.id 
-          ? { ...t, ...taskData }
-          : t
-      ));
-    } else {
-      // Create new task
-      const newTask: Task = {
-        id: `task-${Date.now()}`,
-        title: taskData.title!,
-        description: taskData.description,
-        status: taskData.status as any,
-        priority: taskData.priority as any,
-        assignee: taskData.assignee,
+  const getColumnColor = (color: string) => {
+    const colors = {
+      slate: 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800',
+      blue: 'border-blue-200 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30',
+      amber: 'border-amber-200 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30',
+      emerald: 'border-emerald-200 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30',
+    };
+    return colors[color as keyof typeof colors] || colors.slate;
         reporter: taskData.reporter || null,
         dueDate: taskData.dueDate,
         project: taskData.project!,
@@ -220,15 +238,25 @@ const ProjectsView: React.FC = () => {
         estimatedTime: taskData.estimatedTime,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        companyId: taskData.companyId || '',
+        companyId: company?.id || '',
       };
       setTasks([...tasks, newTask]);
+      
+      // Update localStorage
+      const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+      allTasks.push(newTask);
+      localStorage.setItem('insightos_tasks', JSON.stringify(allTasks));
     }
     setSelectedTaskForEdit(null);
   };
 
   const handleDeleteTask = (taskId: string) => {
     setTasks(tasks.filter(t => t.id !== taskId));
+    
+    // Update localStorage
+    const allTasks = JSON.parse(localStorage.getItem('insightos_tasks') || '[]');
+    const filteredTasks = allTasks.filter((t: any) => t.id !== taskId);
+    localStorage.setItem('insightos_tasks', JSON.stringify(filteredTasks));
   };
 
   const handleEditProject = (project: Project) => {

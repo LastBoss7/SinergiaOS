@@ -21,6 +21,10 @@ export interface User {
   };
   skills?: string[];
   bio?: string;
+  salary?: number;
+  hourlyRate?: number;
+  employeeId?: string;
+  hireDate?: string;
 }
 
 export interface Company {

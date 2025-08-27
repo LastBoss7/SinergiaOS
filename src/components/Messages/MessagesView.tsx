@@ -58,6 +58,24 @@ const MessagesView: React.FC = () => {
     }
   };
 
+  const handleChannelSelect = (channelId: string) => {
+    setActiveChannel(channelId);
+    setSelectedUser(null);
+  };
+
+  const handleDirectMessageSelect = (userId: string) => {
+    setSelectedUser(userId);
+    setActiveChannel('');
+  };
+
+  const getCurrentChannelName = () => {
+    if (selectedUser) {
+      const user = mockUsers.find(u => u.id === selectedUser);
+      return user?.name || 'Usuário';
+    }
+    return channels.find(c => c.id === activeChannel)?.name || 'geral';
+  };
+
   return (
     <div className="h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] flex">
       {/* Sidebar de Canais */}

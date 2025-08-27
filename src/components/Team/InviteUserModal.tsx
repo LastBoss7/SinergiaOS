@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 interface InviteUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite?: (inviteData: any) => void;
+  onInvite: (inviteData: any) => void;
 }
 
 const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onInvite }) => {
@@ -18,6 +18,9 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
     role: 'member',
     department: '',
     position: '',
+    phone: '',
+    salary: '',
+    hourlyRate: '',
     message: '',
   });
   const [inviteLink, setInviteLink] = useState('');
@@ -79,13 +82,22 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
 
   const handleEmailInvite = async () => {
     try {
-      const newUser = await addUserToCompany?.(formData);
+      const userData = {
+        ...formData,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        hourlyRate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : undefined,
+        permissions: [
+          { module: 'core', actions: ['read', 'write'] }
+        ]
+      };
       
-      if (newUser && onInvite) {
+      const newUser = await addUserToCompany?.(userData);
+      
+      if (newUser) {
         onInvite({
           type: 'email',
           user: newUser,
-          ...formData,
+          ...userData,
         });
       }
     } catch (error) {
@@ -99,6 +111,9 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
       role: 'member',
       department: '',
       position: '',
+      phone: '',
+      salary: '',
+      hourlyRate: '',
       message: '',
     });
     onClose();
@@ -237,6 +252,48 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Telefone
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full px-3 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="+55 (11) 99999-9999"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Salário (Opcional)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.salary}
+                      onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                      className="w-full px-3 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="5000"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Valor/Hora (Opcional)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.hourlyRate}
+                      onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                      className="w-full px-3 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Departamento
                     </label>
                     <select
