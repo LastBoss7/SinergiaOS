@@ -228,6 +228,10 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, onClose, onIn
                           </label>
                           {selectedFile && (
                             <div className="flex items-center space-x-2 mt-2">
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
