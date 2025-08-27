@@ -205,16 +205,6 @@ const ProjectsView: React.FC = () => {
     }
   };
 
-  const getColumnColor = (color: string) => {
-    const colors = {
-      slate: 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800',
-      blue: 'border-blue-200 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30',
-      amber: 'border-amber-200 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30',
-      emerald: 'border-emerald-200 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30',
-    };
-    return colors[color as keyof typeof colors] || colors.slate;
-  };
-
   const handleSaveTask = (taskData: Partial<Task>) => {
     if (selectedTaskForEdit) {
       // Edit existing task
