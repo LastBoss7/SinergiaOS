@@ -22,12 +22,16 @@ import CommandPalette from './components/AI/CommandPalette';
 import MobileProjects from './components/Mobile/MobileProjects';
 import ProjectModal from './components/Projects/ProjectModal';
 import TaskModal from './components/Tasks/TaskModal';
+import UserProfileModal from './components/Team/UserProfileModal';
+import SupportModal from './components/Support/SupportModal';
 
 function App() {
   const [activeView, setActiveView] = useState('dashboard');
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   // Command palette shortcut
   useEffect(() => {
@@ -61,6 +65,12 @@ function App() {
         break;
       case 'overdue-projects':
         setActiveView('projects');
+        break;
+      case 'open-profile':
+        setIsProfileModalOpen(true);
+        break;
+      case 'open-support':
+        setIsSupportModalOpen(true);
         break;
       case 'ai-query':
         // Handle AI query processing
@@ -121,6 +131,8 @@ function App() {
                 <div className="hidden lg:block">
                   <Header onCommandOpen={() => setIsCommandOpen(true)} />
                 </div>
+                    onProfileOpen={() => setIsProfileModalOpen(true)}
+                    onSupportOpen={() => setIsSupportModalOpen(true)}
                 <main className="p-6">
                   {/* Mobile Dashboard */}
                   <div className="lg:hidden">
@@ -190,6 +202,19 @@ function App() {
               isOpen={isTaskModalOpen}
               onClose={() => setIsTaskModalOpen(false)}
               onSave={() => {}}
+            />
+            
+            <UserProfileModal
+              isOpen={isProfileModalOpen}
+              onClose={() => setIsProfileModalOpen(false)}
+              user={null}
+              onSave={() => {}}
+              canEdit={true}
+            />
+            
+            <SupportModal
+              isOpen={isSupportModalOpen}
+              onClose={() => setIsSupportModalOpen(false)}
             />
           </div>
         </AuthWrapper>

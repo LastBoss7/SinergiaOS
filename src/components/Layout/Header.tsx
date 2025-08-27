@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   onCommandOpen: () => void;
+  onProfileOpen?: () => void;
+  onSupportOpen?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onCommandOpen }) => {
@@ -14,6 +16,19 @@ const Header: React.FC<HeaderProps> = ({ onCommandOpen }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
+  const handleProfileClick = () => {
+    setShowUserMenu(false);
+    if (onProfileOpen) {
+      onProfileOpen();
+    }
+  };
+
+  const handleSupportClick = () => {
+    setShowUserMenu(false);
+    if (onSupportOpen) {
+      onSupportOpen();
+    }
+  };
   return (
     <header className="hidden lg:flex h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 items-center justify-between px-6 sticky top-0 z-40">
       <div className="flex items-center space-x-4">
@@ -62,6 +77,7 @@ const Header: React.FC<HeaderProps> = ({ onCommandOpen }) => {
 
         {/* Help Button */}
         <button
+          onClick={handleSupportClick}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative group"
           title="Central de Ajuda"
         >
@@ -153,7 +169,9 @@ const Header: React.FC<HeaderProps> = ({ onCommandOpen }) => {
               
               <div className="border-t border-slate-200 dark:border-slate-700 py-2">
                 <button 
+                  onClick={handleProfileClick}
                   onClick={logout}
+                  onClick={handleSupportClick}
                   className="w-full flex items-center space-x-3 px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
                 >
                   <LogOut className="w-4 h-4" />
