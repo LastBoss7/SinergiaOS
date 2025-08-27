@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
 import { Plus, Search, Filter, Phone, Mail, Calendar, DollarSign, TrendingUp, Users, Target, Award, Clock, MoreVertical, Edit, Trash2, Eye, Star, Building, MapPin, User } from 'lucide-react';
 
+function getStageText(stage: string) {
+  switch (stage) {
+    case 'lead': return 'Lead';
+    case 'qualified': return 'Qualificado';
+    case 'proposal': return 'Proposta';
+    case 'negotiation': return 'Negociação';
+    case 'closed-won': return 'Fechado';
+    case 'closed-lost': return 'Perdido';
+    default: return 'Lead';
+  }
+}
+
 const CRMView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('leads');
   const [searchTerm, setSearchTerm] = useState('');

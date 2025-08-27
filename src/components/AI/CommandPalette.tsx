@@ -4,7 +4,19 @@ import {
   Zap, Calendar, Target, DollarSign, FileText, Settings, Clock, Star, Send, Sparkles,
   Brain, Activity, ChevronRight, Command, Mic, MicOff
 } from 'lucide-react';
-import { mockInsights } from '../../data/mockData';
+
+const categories = [
+  { id: 'all', name: 'Todos', icon: Command },
+  { id: 'create', name: 'Criar', icon: Plus },
+  { id: 'team', name: 'Equipe', icon: Users },
+  { id: 'analytics', name: 'Analytics', icon: BarChart3 },
+  { id: 'communication', name: 'Comunicação', icon: MessageCircle },
+  { id: 'alerts', name: 'Alertas', icon: AlertTriangle },
+  { id: 'calendar', name: 'Agenda', icon: Calendar },
+  { id: 'finance', name: 'Financeiro', icon: DollarSign },
+  { id: 'automation', name: 'Automação', icon: Zap },
+  { id: 'system', name: 'Sistema', icon: Settings }
+];
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -223,41 +235,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onActi
               )}
 
               {/* AI Insights */}
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-blue-500" />
-                <span>Insights Recentes da IA</span>
-              </h3>
-              <div className="space-y-3">
-                {mockInsights.slice(0, 2).map((insight) => (
-                  <div
-                    key={insight.id}
-                    className="p-4 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-blue-900/20 rounded-lg hover:from-slate-100 hover:to-blue-100 dark:hover:from-slate-700 dark:hover:to-blue-900/30 transition-all duration-200 cursor-pointer border border-slate-200 dark:border-slate-700 group"
-                  >
-                    <div className="flex items-start space-x-3">
-                      {getInsightIcon(insight.type)}
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {insight.title}
-                        </h4>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
-                          {insight.description.slice(0, 120)}...
-                        </p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            insight.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                            insight.priority === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                            'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
-                          }`}>
-                            {insight.priority === 'high' ? 'Alta Prioridade' : 
-                             insight.priority === 'medium' ? 'Média Prioridade' : 'Baixa Prioridade'}
-                          </span>
-                          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
 
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-6 mb-4 flex items-center space-x-2">
                 <Zap className="w-4 h-4 text-emerald-500" />

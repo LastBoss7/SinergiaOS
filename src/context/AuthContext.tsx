@@ -1,433 +1,615 @@
-import React, { useState } from 'react';
-import { Plus, Hash, Users, Search, Send, Paperclip, Smile, MoreHorizontal, Phone, Video, UserPlus, Settings, Archive, Pin, Star, Reply, Edit, Trash2, Copy, Forward, X } from 'lucide-react';
-import { mockMessages, mockUsers } from '../../data/mockData';
-import { useAuth } from '../../context/AuthContext';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User, Company } from '../types';
+import { supabase } from '../lib/supabase';
 
-const MessagesView: React.FC = () => {
-  const { user } = useAuth();
-  const [activeChannel, setActiveChannel] = useState('geral');
-  const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState(mockMessages);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [showChannelSettings, setShowChannelSettings] = useState(false);
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  company: Company | null;
+  loading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: any) => Promise<void>;
+  logout: () => void;
+  updateUser: (data: Partial<User>) => Promise<void>;
+  updateCompany: (data: Partial<Company>) => Promise<void>;
+  getCompanyUsers: () => User[];
+  getCompanyProjects: () => any[];
+  getCompanyTasks: () => any[];
+  addUserToCompany: (userData: any) => Promise<User>;
+  removeUserFromCompany: (userId: string) => Promise<void>;
+}
 
-  const channels = [
-    { id: 'geral', name: 'Geral', type: 'public', unread: 3 },
-    { id: 'projetos', name: 'Projetos', type: 'public', unread: 1 },
-    { id: 'marketing', name: 'Marketing', type: 'public', unread: 0 },
-    { id: 'desenvolvimento', name: 'Desenvolvimento', type: 'public', unread: 5 },
-    { id: 'recursos-humanos', name: 'Recursos Humanos', type: 'private', unread: 0 },
-    { id: 'random', name: 'Random', type: 'public', unread: 2 },
-    { id: 'anuncios', name: 'Anúncios', type: 'public', unread: 0 },
-  ];
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-  const directMessages = [
-    { user: mockUsers[1], unread: 2, lastMessage: 'Vou revisar o documento hoje', time: '10:30' },
-    { user: mockUsers[2], unread: 0, lastMessage: 'Perfeito! Obrigada', time: '09:15' },
-    { user: mockUsers[3], unread: 1, lastMessage: 'Posso te ligar em 10min?', time: '08:45' },
-    { user: mockUsers[4], unread: 0, lastMessage: 'Reunião confirmada para amanhã', time: '08:00' },
-  ];
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const channelMessages = messages.filter(msg => 
-    selectedUser ? msg.sender.id === selectedUser || msg.sender.id === user?.id : msg.channel === activeChannel
-  );
-
-  const handleChannelSelect = (channelId: string) => {
-    setActiveChannel(channelId);
-    setSelectedUser(null);
-  };
-
-  const handleDirectMessageSelect = (userId: string) => {
-    setSelectedUser(userId);
-    setActiveChannel('');
-  };
-
-  const getCurrentChannelName = () => {
-    if (selectedUser) {
-      const selectedUserData = mockUsers.find(u => u.id === selectedUser);
-      return selectedUserData?.name || 'Usuário';
+  useEffect(() => {
+    // Check for existing session
+    const savedUser = localStorage.getItem('insightos_user');
+    const savedCompany = localStorage.getItem('insightos_company');
+    
+    if (savedUser && savedCompany) {
+      setUser(JSON.parse(savedUser));
+      setCompany(JSON.parse(savedCompany));
+      setIsAuthenticated(true);
     }
-    const channel = channels.find(c => c.id === activeChannel);
-    return channel?.name || 'Canal';
+    
+    setLoading(false);
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Demo login
+      if (email === 'demo@insightos.com' && password === 'demo') {
+        const demoUser: User = {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          name: 'Ana Silva',
+          email: 'demo@insightos.com',
+          role: 'admin',
+          status: 'online',
+          department: 'Administração',
+          position: 'CEO',
+          phone: '+55 (11) 99999-9999',
+          location: 'São Paulo, SP',
+          joinDate: '2024-01-01',
+          permissions: [{ module: 'all', actions: ['read', 'write', 'delete', 'admin'] }],
+          companyId: '550e8400-e29b-41d4-a716-446655440000',
+          isActive: true,
+          hierarchy: {
+            level: 0,
+            directReports: ['2', '3', '4']
+          },
+          skills: ['Gestão', 'Estratégia', 'Liderança'],
+          bio: 'CEO e fundadora da InsightOS com mais de 10 anos de experiência em gestão empresarial.'
+        };
+
+        const demoCompany: Company = {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'InsightOS Demo',
+          email: 'demo@insightos.com',
+          plan: 'business',
+          industry: 'Tecnologia',
+          size: '11-50',
+          address: 'São Paulo, SP',
+          phone: '+55 (11) 3333-3333',
+          website: 'https://insightos.demo',
+          createdAt: '2024-01-01',
+          settings: {
+            timezone: 'America/Sao_Paulo',
+            currency: 'BRL',
+            language: 'pt-BR',
+            workingHours: {
+              start: '09:00',
+              end: '18:00',
+              workingDays: [1, 2, 3, 4, 5],
+            },
+            notifications: {
+              email: true,
+              push: true,
+              slack: false,
+            },
+          },
+          modules: ['core', 'crm', 'finance', 'hr', 'operations', 'analytics'],
+        };
+
+        // Initialize demo data
+        initializeDemoData();
+
+        setUser(demoUser);
+        setCompany(demoCompany);
+        setIsAuthenticated(true);
+        
+        localStorage.setItem('insightos_user', JSON.stringify(demoUser));
+        localStorage.setItem('insightos_company', JSON.stringify(demoCompany));
+      } else {
+        // Try Supabase authentication
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+          // Load user and company data from Supabase
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*, companies(*)')
+            .eq('email', email)
+            .single();
+
+          if (userData) {
+            const user: User = {
+              id: userData.id,
+              name: userData.full_name,
+              email: userData.email,
+              role: userData.role,
+              status: userData.status,
+              department: userData.department_id,
+              position: userData.position,
+              phone: userData.phone,
+              location: userData.timezone,
+              joinDate: userData.hire_date || userData.created_at,
+              permissions: userData.permissions || [],
+              companyId: userData.company_id,
+              isActive: userData.is_active,
+            };
+
+            const company: Company = {
+              id: userData.companies.id,
+              name: userData.companies.name,
+              email: userData.companies.email,
+              plan: userData.companies.plan,
+              industry: userData.companies.industry,
+              size: userData.companies.company_size,
+              address: userData.companies.address_line1,
+              phone: userData.companies.phone,
+              website: userData.companies.website,
+              createdAt: userData.companies.created_at,
+              settings: userData.companies.settings,
+              modules: userData.companies.active_modules,
+            };
+
+            setUser(user);
+            setCompany(company);
+            setIsAuthenticated(true);
+            
+            localStorage.setItem('insightos_user', JSON.stringify(user));
+            localStorage.setItem('insightos_company', JSON.stringify(company));
+          }
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSendMessage = () => {
-    if (messageInput.trim()) {
-      const newMessage = {
-        id: `msg-${Date.now()}`,
-        content: messageInput,
-        sender: user!,
-        timestamp: new Date().toISOString(),
-        channel: selectedUser ? 'direct' : activeChannel,
-        type: 'text' as const,
+  const register = async (data: any) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Create company first
+      const newCompany: Company = {
+        id: `comp-${Date.now()}`,
+        name: data.company.companyName,
+        email: data.user.email,
+        plan: 'free',
+        industry: data.company.industry,
+        size: data.company.size,
+        address: data.company.address,
+        phone: data.company.phone,
+        website: data.company.website,
+        createdAt: new Date().toISOString(),
+        settings: {
+          timezone: 'America/Sao_Paulo',
+          currency: 'BRL',
+          language: 'pt-BR',
+          workingHours: {
+            start: '09:00',
+            end: '18:00',
+            workingDays: [1, 2, 3, 4, 5],
+          },
+          notifications: {
+            email: true,
+            push: true,
+            slack: false,
+          },
+        },
+        modules: ['core'],
+      };
+
+      // Create admin user
+      const newUser: User = {
+        id: `user-${Date.now()}`,
+        name: data.user.name,
+        email: data.user.email,
+        role: 'admin',
+        status: 'online',
+        department: 'Administração',
+        position: data.user.position || 'Administrador',
+        phone: data.user.phone,
+        location: 'Brasil',
+        joinDate: new Date().toISOString(),
+        permissions: [{ module: 'all', actions: ['read', 'write', 'delete', 'admin'] }],
+        companyId: newCompany.id,
+        isActive: true,
+        hierarchy: {
+          level: 0,
+          directReports: []
+        },
+        skills: ['Gestão', 'Administração'],
+        bio: 'Fundador(a) da empresa e administrador principal do sistema.'
+      };
+
+      setUser(newUser);
+      setCompany(newCompany);
+      setIsAuthenticated(true);
+      
+      localStorage.setItem('insightos_user', JSON.stringify(newUser));
+      localStorage.setItem('insightos_company', JSON.stringify(newCompany));
+      
+      // Initialize empty data structures for new company
+      localStorage.setItem(`insightos_users_${newCompany.id}`, JSON.stringify([newUser]));
+      localStorage.setItem(`insightos_projects_${newCompany.id}`, JSON.stringify([]));
+      localStorage.setItem(`insightos_tasks_${newCompany.id}`, JSON.stringify([]));
+      localStorage.setItem(`insightos_messages_${newCompany.id}`, JSON.stringify([]));
+      localStorage.setItem(`insightos_departments_${newCompany.id}`, JSON.stringify([
+        { id: 'dept-1', name: 'Administração', managerId: newUser.id, color: '#8B5CF6' },
+        { id: 'dept-2', name: 'Desenvolvimento', managerId: null, color: '#3B82F6' },
+        { id: 'dept-3', name: 'Vendas', managerId: null, color: '#10B981' },
+        { id: 'dept-4', name: 'Marketing', managerId: null, color: '#F59E0B' },
+        { id: 'dept-5', name: 'Recursos Humanos', managerId: null, color: '#EC4899' },
+        { id: 'dept-6', name: 'Financeiro', managerId: null, color: '#EF4444' },
+      ]));
+
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar conta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setCompany(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('insightos_user');
+    localStorage.removeItem('insightos_company');
+  };
+
+  const updateUser = async (data: Partial<User>) => {
+    if (!user) return;
+
+    const updatedUser = { ...user, ...data };
+    setUser(updatedUser);
+    localStorage.setItem('insightos_user', JSON.stringify(updatedUser));
+
+    // Update in company users list
+    const companyUsers = getCompanyUsers();
+    const updatedUsers = companyUsers.map(u => u.id === user.id ? updatedUser : u);
+    localStorage.setItem(`insightos_users_${company?.id}`, JSON.stringify(updatedUsers));
+  };
+
+  const updateCompany = async (data: Partial<Company>) => {
+    if (!company) return;
+
+    const updatedCompany = { ...company, ...data };
+    setCompany(updatedCompany);
+    localStorage.setItem('insightos_company', JSON.stringify(updatedCompany));
+  };
+
+  const getCompanyUsers = (): User[] => {
+    if (!company) return [];
+    const users = localStorage.getItem(`insightos_users_${company.id}`);
+    return users ? JSON.parse(users) : [];
+  };
+
+  const getCompanyProjects = () => {
+    if (!company) return [];
+    const projects = localStorage.getItem(`insightos_projects_${company.id}`);
+    return projects ? JSON.parse(projects) : [];
+  };
+
+  const getCompanyTasks = () => {
+    if (!company) return [];
+    const tasks = localStorage.getItem(`insightos_tasks_${company.id}`);
+    return tasks ? JSON.parse(tasks) : [];
+  };
+
+  const addUserToCompany = async (userData: any): Promise<User> => {
+    if (!company || !user) throw new Error('No company or user context');
+
+    const newUser: User = {
+      id: `user-${Date.now()}`,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role || 'member',
+      status: 'offline',
+      department: userData.department,
+      position: userData.position,
+      phone: userData.phone,
+      location: 'Brasil',
+      joinDate: new Date().toISOString(),
+      permissions: [
+        { module: 'core', actions: ['read', 'write'] }
+      ],
+      companyId: company.id,
+      isActive: true,
+      hierarchy: {
+        level: userData.role === 'admin' ? 1 : userData.role === 'manager' ? 2 : 3,
+        reportsTo: userData.role === 'admin' ? user.id : undefined
+      },
+      skills: [],
+      bio: `Novo membro da equipe ${userData.department || 'da empresa'}.`,
+      salary: userData.salary,
+      hourlyRate: userData.hourlyRate
+    };
+
+    // Add to company users
+    const companyUsers = getCompanyUsers();
+    const updatedUsers = [...companyUsers, newUser];
+    localStorage.setItem(`insightos_users_${company.id}`, JSON.stringify(updatedUsers));
+
+    return newUser;
+  };
+
+  const removeUserFromCompany = async (userId: string) => {
+    if (!company) return;
+
+    const companyUsers = getCompanyUsers();
+    const updatedUsers = companyUsers.filter(u => u.id !== userId);
+    localStorage.setItem(`insightos_users_${company.id}`, JSON.stringify(updatedUsers));
+  };
+
+  const initializeDemoData = () => {
+    const companyId = '550e8400-e29b-41d4-a716-446655440000';
+    
+    // Demo users
+    const demoUsers = [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        name: 'Ana Silva',
+        email: 'demo@insightos.com',
+        role: 'admin',
+        status: 'online',
+        department: 'Administração',
+        position: 'CEO',
+        phone: '+55 (11) 99999-9999',
+        location: 'São Paulo, SP',
+        joinDate: '2024-01-01',
+        permissions: [{ module: 'all', actions: ['read', 'write', 'delete', 'admin'] }],
+        companyId,
+        isActive: true,
+        hierarchy: { level: 0, directReports: ['2', '3', '4'] },
+        skills: ['Gestão', 'Estratégia', 'Liderança'],
+        bio: 'CEO e fundadora da InsightOS.'
+      },
+      {
+        id: '2',
+        name: 'Carlos Santos',
+        email: 'carlos@insightos.com',
+        role: 'manager',
+        status: 'online',
+        department: 'Vendas',
+        position: 'Gerente de Vendas',
+        phone: '+55 (11) 98888-8888',
+        location: 'São Paulo, SP',
+        joinDate: '2024-01-15',
+        permissions: [{ module: 'crm', actions: ['read', 'write'] }],
+        companyId,
+        isActive: true,
+        hierarchy: { level: 1, reportsTo: '550e8400-e29b-41d4-a716-446655440001' },
+        skills: ['Vendas', 'Negociação', 'CRM'],
+        bio: 'Gerente de vendas experiente.'
+      },
+      {
+        id: '3',
+        name: 'Maria Oliveira',
+        email: 'maria@insightos.com',
+        role: 'member',
+        status: 'away',
+        department: 'Design',
+        position: 'UX Designer',
+        phone: '+55 (11) 97777-7777',
+        location: 'Rio de Janeiro, RJ',
+        joinDate: '2024-01-20',
+        permissions: [{ module: 'core', actions: ['read', 'write'] }],
+        companyId,
+        isActive: true,
+        hierarchy: { level: 2, reportsTo: '550e8400-e29b-41d4-a716-446655440001' },
+        skills: ['UX Design', 'Figma', 'Prototipagem'],
+        bio: 'Designer UX/UI apaixonada por experiências digitais.'
+      },
+      {
+        id: '4',
+        name: 'João Costa',
+        email: 'joao@insightos.com',
+        role: 'member',
+        status: 'online',
+        department: 'Desenvolvimento',
+        position: 'Desenvolvedor Full-Stack',
+        phone: '+55 (11) 96666-6666',
+        location: 'São Paulo, SP',
+        joinDate: '2024-01-25',
+        permissions: [{ module: 'core', actions: ['read', 'write'] }],
+        companyId,
+        isActive: true,
+        hierarchy: { level: 2, reportsTo: '550e8400-e29b-41d4-a716-446655440001' },
+        skills: ['React', 'Node.js', 'TypeScript'],
+        bio: 'Desenvolvedor full-stack especializado em React.'
+      }
+    ];
+
+    // Demo projects
+    const demoProjects = [
+      {
+        id: 'proj-1',
+        name: 'Lançamento Beta',
+        description: 'Preparação e execução do lançamento da versão beta',
+        status: 'active',
+        progress: 75,
+        team: demoUsers.slice(0, 3),
+        manager: demoUsers[0],
+        budget: 150000,
+        spent: 95000,
+        createdAt: '2024-01-01',
+        dueDate: '2024-01-31',
+        companyId,
+        client: 'Cliente Alpha',
+        tags: ['MVP', 'Beta', 'Launch']
+      },
+      {
+        id: 'proj-2',
+        name: 'Sistema Analytics',
+        description: 'Desenvolvimento do módulo de análise de dados',
+        status: 'active',
+        progress: 45,
+        team: [demoUsers[1], demoUsers[3]],
+        manager: demoUsers[1],
+        budget: 100000,
+        spent: 35000,
+        createdAt: '2024-01-05',
+        dueDate: '2024-02-15',
+        companyId,
+        client: 'Cliente Beta',
+        tags: ['Analytics', 'BI', 'Reports']
+      },
+      {
+        id: 'proj-3',
+        name: 'CRM Enterprise',
+        description: 'Implementação de CRM avançado',
+        status: 'planning',
+        progress: 15,
+        team: [demoUsers[1], demoUsers[2]],
+        manager: demoUsers[1],
+        budget: 200000,
+        spent: 15000,
+        createdAt: '2024-01-10',
+        dueDate: '2024-03-30',
+        companyId,
+        client: 'Enterprise Corp',
+        tags: ['CRM', 'Enterprise', 'Sales']
+      }
+    ];
+
+    // Demo tasks
+    const demoTasks = [
+      {
+        id: 'task-1',
+        title: 'Revisar proposta comercial',
+        description: 'Analisar e atualizar proposta para cliente X',
+        status: 'in-progress',
+        priority: 'high',
+        assignee: demoUsers[0],
+        reporter: demoUsers[1],
+        dueDate: '2024-01-25',
+        project: 'Lançamento Beta',
+        tags: ['proposal', 'commercial'],
+        timeTracked: 300,
+        estimatedTime: 480,
+        createdAt: '2024-01-15',
+        updatedAt: '2024-01-15',
+        companyId
+      },
+      {
+        id: 'task-2',
+        title: 'Implementar dashboard analytics',
+        description: 'Criar visualizações para métricas de negócio',
+        status: 'todo',
+        priority: 'medium',
+        assignee: demoUsers[3],
+        reporter: demoUsers[0],
+        dueDate: '2024-02-05',
+        project: 'Sistema Analytics',
+        tags: ['dashboard', 'analytics'],
+        timeTracked: 0,
+        estimatedTime: 960,
+        createdAt: '2024-01-16',
+        updatedAt: '2024-01-16',
+        companyId
+      },
+      {
+        id: 'task-3',
+        title: 'Teste de usabilidade',
+        description: 'Conduzir testes com usuários finais',
+        status: 'review',
+        priority: 'high',
+        assignee: demoUsers[2],
+        reporter: demoUsers[0],
+        dueDate: '2024-01-30',
+        project: 'Lançamento Beta',
+        tags: ['testing', 'usability'],
+        timeTracked: 600,
+        estimatedTime: 720,
+        createdAt: '2024-01-17',
+        updatedAt: '2024-01-17',
+        companyId
+      }
+    ];
+
+    // Demo messages
+    const demoMessages = [
+      {
+        id: 'msg-1',
+        content: 'Bem-vindos ao InsightOS! 🎉 Vamos começar organizando nossos projetos.',
+        sender: demoUsers[0],
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        channel: 'geral',
+        type: 'text',
         edited: false,
         reactions: [],
-        companyId: user?.companyId || ''
-      };
-      
-      setMessages([...messages, newMessage]);
-      setMessageInput('');
-    }
-  };
+        companyId
+      },
+      {
+        id: 'msg-2',
+        content: 'Pessoal, reunião de planning às 14h para discutir as próximas entregas.',
+        sender: demoUsers[1],
+        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+        channel: 'geral',
+        type: 'text',
+        edited: false,
+        reactions: [],
+        companyId
+      },
+      {
+        id: 'msg-3',
+        content: 'Dashboard analytics está 60% completo. Preview disponível para testes.',
+        sender: demoUsers[3],
+        timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        channel: 'desenvolvimento',
+        type: 'text',
+        edited: false,
+        reactions: [],
+        companyId
+      }
+    ];
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+    // Save demo data
+    localStorage.setItem(`insightos_users_${companyId}`, JSON.stringify(demoUsers));
+    localStorage.setItem(`insightos_projects_${companyId}`, JSON.stringify(demoProjects));
+    localStorage.setItem(`insightos_tasks_${companyId}`, JSON.stringify(demoTasks));
+    localStorage.setItem(`insightos_messages_${companyId}`, JSON.stringify(demoMessages));
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] flex">
-      {/* Sidebar de Canais */}
-      <div className="w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden lg:flex">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Mensagens</h1>
-            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-              <Plus className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar conversas..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {/* Canais */}
-          <div className="p-4">
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-              Canais
-            </h3>
-            <div className="space-y-1">
-              {channels.map((channel) => (
-                <button
-                  key={channel.id}
-                  onClick={() => handleChannelSelect(channel.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
-                    activeChannel === channel.id && !selectedUser
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Hash className="w-4 h-4" />
-                    <span className="text-sm font-medium">{channel.name}</span>
-                  </div>
-                  {channel.unread > 0 && (
-                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                      {channel.unread}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Mensagens Diretas */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-              Mensagens Diretas
-            </h3>
-            <div className="space-y-2">
-              {directMessages.map((dm) => (
-                <button
-                  key={dm.user.id}
-                  onClick={() => handleDirectMessageSelect(dm.user.id)}
-                  className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="relative">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                      {dm.user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 ${
-                      dm.user.status === 'online' ? 'bg-emerald-400' :
-                      dm.user.status === 'away' ? 'bg-amber-400' : 'bg-slate-400'
-                    } rounded-full border-2 border-white dark:border-slate-900`}></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                        {dm.user.name}
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{dm.time}</span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{dm.lastMessage}</p>
-                  </div>
-                  {dm.unread > 0 && (
-                    <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                      {dm.unread}
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Channel List */}
-      <div className="lg:hidden w-full bg-white dark:bg-slate-800 rounded-xl p-4 mb-6 border border-slate-200 dark:border-slate-700">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Canais</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {channels.map((channel) => (
-            <button
-              key={channel.id}
-              onClick={() => setActiveChannel(channel.id)}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
-                activeChannel === channel.id
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Hash className="w-4 h-4" />
-                <span className="text-sm font-medium">{channel.name}</span>
-              </div>
-              {channel.unread > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                  {channel.unread}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        
-        <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-6 mb-3">
-          Mensagens Diretas
-        </h3>
-        <div className="space-y-2">
-          {directMessages.map((dm) => (
-            <div key={dm.user.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                {dm.user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-              </div>
-              <span className="text-sm text-slate-900 dark:text-white">{dm.user.name}</span>
-              {dm.unread > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[16px] text-center">
-                  {dm.unread}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Área Principal de Chat */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-slate-800">
-        {/* Header do Chat */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Hash className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-              <div>
-                <h2 className="font-semibold text-slate-900 dark:text-white">
-                  {getCurrentChannelName()}
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {selectedUser ? 'Conversa direta' : `${mockUsers.filter(u => u.status === 'online').length} membros online`}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {selectedUser ? (
-                <>
-                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                    <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                  </button>
-                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                    <Video className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                    <UserPlus className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                  </button>
-                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                    <Users className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                  </button>
-                  <button 
-                    onClick={() => setShowChannelSettings(!showChannelSettings)}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                  >
-                    <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Mensagens */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
-          {channelMessages.map((message) => (
-            <div key={message.id} className="flex items-start space-x-3 group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-lg transition-colors">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                {message.sender.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {message.sender.name}
-                  </span>
-                  {message.sender.role === 'admin' && (
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs rounded-full">
-                      Admin
-                    </span>
-                  )}
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {new Date(message.timestamp).toLocaleTimeString('pt-BR', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                  {message.content}
-                </p>
-                {message.edited && (
-                  <span className="text-xs text-slate-500 dark:text-slate-500 italic">
-                    (editado)
-                  </span>
-                )}
-              </div>
-              <div className="opacity-0 group-hover:opacity-100 flex items-center space-x-1 transition-opacity">
-                <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
-                  <Reply className="w-3 h-3 text-slate-500" />
-                </button>
-                <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
-                  <Star className="w-3 h-3 text-slate-500" />
-                </button>
-                {message.sender.id === user?.id && (
-                  <>
-                    <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
-                      <Edit className="w-3 h-3 text-slate-500" />
-                    </button>
-                    <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors">
-                      <Trash2 className="w-3 h-3 text-red-500" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {/* IA Assistant Message */}
-          <div className="flex items-start space-x-3 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-              <span className="text-sm font-bold">IA</span>
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1">
-                <span className="font-semibold text-blue-800 dark:text-blue-200">Assistente IA</span>
-                <span className="text-xs text-blue-600 dark:text-blue-400">agora</span>
-              </div>
-              <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
-                📊 <strong>Insight Automático:</strong> Detectei que a produtividade da equipe aumentou 23% esta semana. 
-                O projeto "Lançamento Beta\" está 15% adiantado no cronograma. Recomendo aproveitar esse momentum 
-                para antecipar algumas entregas do próximo sprint.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Input de Mensagem */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex items-center space-x-3">
-            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-              <Paperclip className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={selectedUser ? `Mensagem para ${mockUsers.find(u => u.id === selectedUser)?.name}` : `Mensagem para #${getCurrentChannelName()}`}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-              <Smile className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-            <button
-              onClick={handleSendMessage}
-              disabled={!messageInput.trim()}
-              className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
-          
-          {/* Typing indicator */}
-          <div className="px-4 py-2">
-            <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-500">
-              <div className="flex space-x-1">
-                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce"></div>
-                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-              <span>João Costa está digitando...</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Channel Settings Panel */}
-        {showChannelSettings && !selectedUser && (
-          <div className="w-64 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-slate-900 dark:text-white">Configurações do Canal</h3>
-              <button 
-                onClick={() => setShowChannelSettings(false)}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-              >
-                <X className="w-4 h-4 text-slate-500" />
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <Pin className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-700 dark:text-slate-300">Fixar Canal</span>
-              </button>
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <UserPlus className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-700 dark:text-slate-300">Adicionar Membros</span>
-              </button>
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <Archive className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-700 dark:text-slate-300">Arquivar Canal</span>
-              </button>
-            </div>
-            
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-3">Membros do Canal</h4>
-              <div className="space-y-2">
-                {mockUsers.slice(0, 4).map((member) => (
-                  <div key={member.id} className="flex items-center space-x-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs">
-                      {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{member.name}</span>
-                    <div className={`w-2 h-2 rounded-full ${
-                      member.status === 'online' ? 'bg-emerald-400' :
-                      member.status === 'away' ? 'bg-amber-400' : 'bg-slate-400'
-                    }`}></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      user,
+      company,
+      loading,
+      error,
+      login,
+      register,
+      logout,
+      updateUser,
+      updateCompany,
+      getCompanyUsers,
+      getCompanyProjects,
+      getCompanyTasks,
+      addUserToCompany,
+      removeUserFromCompany,
+    }}>
+      {children}
+    </AuthContext.Provider>
   );
 };
 
-export default MessagesView;
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
